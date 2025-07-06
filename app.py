@@ -97,18 +97,28 @@ def name():
 
 # チャット画面
 @app.route('/chat')
-@app.route('/chat')
 def chat():
     if 'user' not in session:
         return redirect(url_for('login'))
 
     email = session['user']
-    with sqlite3.connect("chat.db") as conn:
+    with sqlite3.connect("users.db") as conn:
         cur = conn.execute("SELECT display_name FROM users WHERE email=?", (email,))
         row = cur.fetchone()
 
     display_name = row[0] if row else "Unknown"
-    return render_template('chat.html', user=display_name, email=email)
+
+    # ✅ メッセージを読み込む
+    with sqlite3.connect("chat.db") as conn:
+        cur = conn.execute("SELECT name, text, time, read FROM messages")
+        rows = cur.fetchall()
+
+    messages = [
+        {"name": name, "text": text, "time": time, "read": read}
+        for name, text, time, read in rows
+    ]
+
+    return render_template('chat.html', user=display_name, messages=messages, email=email)
 
 # メッセージ送信
 @app.route('/send', methods=['POST'])
@@ -128,7 +138,7 @@ def send_message():
     text = data.get("text", "")
 
     with sqlite3.connect("chat.db") as conn:
-        conn.execute("ALTER TABLE messages ADD COLUMN email TEXT")  # 初回だけ実行すればOK
+        #conn.execute("ALTER TABLE messages ADD COLUMN email TEXT")  # 初回だけ実行すればOK
         conn.execute("INSERT INTO messages (name, text, time, read, email) VALUES (?, ?, ?, ?, ?)",
                      (name, text, now, 0, email))
 
