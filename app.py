@@ -29,7 +29,7 @@ init_db()
 
 # メール送信（Gmail SMTP使用）
 def send_login_email(email, token):
-    from secrets import EMAIL_ADDRESS, EMAIL_PASSWORD
+    from secrets__ import EMAIL_ADDRESS, EMAIL_PASSWORD
     login_link = f"https://chat-app-test-for-password.onrender.com/verify?token={token}"
 
     msg = EmailMessage()
