@@ -49,19 +49,18 @@
       chat.innerHTML = "";
 
       data.forEach(msg => {
-        const isMine = msg.name === userName;
+        const isMine = msg.email === email;
         const side = isMine ? "right" : "left";
         const bubble = document.createElement("div");
         bubble.className = `msg ${side}`;
         bubble.innerHTML = `
           <strong>${msg.name}</strong><br>
           ${msg.text}
-          <div class="meta">
-            ${msg.time}
-          </div>
-        `;
+          <div class="meta">${msg.time}</div>
+       ` ;
         chat.appendChild(bubble);
       });
+
 
       chat.scrollTop = chat.scrollHeight;
     }
