@@ -57,7 +57,7 @@
           <strong>${msg.name}</strong><br>
           ${msg.text}
           <div class="meta">
-            ${msg.time} ｜ 既読: ${msg.read}
+            ${msg.time}
           </div>
         `;
         chat.appendChild(bubble);
@@ -65,7 +65,7 @@
 
       chat.scrollTop = chat.scrollHeight;
     }
-
+//｜ 既読: ${msg.read}
     async function send() {
       const text = document.getElementById("text").value;
       if (!text.trim()) return;

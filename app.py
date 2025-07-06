@@ -70,15 +70,24 @@ def verify():
 
     if row:
         session['user'] = row[0]
-        return redirect(url_for('chat'))
+        return redirect(url_for('name'))
     else:
         return "このリンクは無効か、期限が切れています。"
-
+    
 @app.route('/chat')
 def chat():
     if 'user' not in session:
         return redirect(url_for('login'))
-    return render_template('chat.html', user=session['user'])
+
+    email = session['user']
+    with sqlite3.connect("users.db") as conn:
+        cur = conn.execute("SELECT display_name FROM users WHERE email=?", (email,))
+        row = cur.fetchone()
+
+    display_name = row[0] if row else "Unknown"
+
+    return render_template('chat.html', user=display_name)
+
 
 @app.route('/logout')
 def logout():
@@ -114,6 +123,28 @@ def get_messages():
         for name, text, time, read in rows
     ]
     return jsonify(messages)
+
+@app.route('/name', methods=['GET', 'POST'])
+def name():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        display_name = request.form['display_name']
+        email = session['user']
+
+        # データベースに保存
+        with sqlite3.connect("users.db") as conn:
+            conn.execute('''CREATE TABLE IF NOT EXISTS users (
+                email TEXT PRIMARY KEY,
+                display_name TEXT
+            )''')
+            conn.execute('REPLACE INTO users (email, display_name) VALUES (?, ?)', (email, display_name))
+
+        return redirect(url_for('chat'))
+
+    return render_template('name.html')
+
 
 if __name__ == '__main__':
     app.run(debug=True)
