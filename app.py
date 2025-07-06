@@ -26,7 +26,8 @@ def init_db():
             name TEXT,
             text TEXT,
             time TEXT,
-            read INTEGER
+            read INTEGER,
+            email TEXT
         )''')
 init_db()
 
@@ -103,20 +104,19 @@ def chat():
 
     email = session['user']
     with sqlite3.connect("chat.db") as conn:
-        cur = conn.execute("SELECT email, display_name FROM users")
+        cur = conn.execute("SELECT display_name FROM users WHERE email=?", (email,))
         rows = cur.fetchall()
 
-    display_name = rows[0][1] if rows else "Unknown"
-    email = rows[0][0] if rows else email
+    display_name = rows[0][0] if rows else "Unknown"
 
     # ✅ メッセージを読み込む
     with sqlite3.connect("chat.db") as conn:
-        cur = conn.execute("SELECT name, text, time, read FROM messages")
+        cur = conn.execute("SELECT name, text, time, read, email FROM messages")
         rows = cur.fetchall()
 
     messages = [
-        {"name": name, "text": text, "time": time, "read": read}
-        for name, text, time, read in rows
+        {"name": name, "text": text, "time": time, "read": read, "email": email}
+        for name, text, time, read, email in rows
     ]
 
     return render_template('chat.html', user=display_name, messages=messages, email=email)
