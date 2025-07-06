@@ -28,7 +28,7 @@ init_db()
 
 # メール送信（Gmail SMTP使用）
 def send_login_email(email, token):
-    from secrets import EMAIL_ADDRESS, EMAIL_PASSWORD  # 別ファイルで定義
+    from secrets__ import EMAIL_ADDRESS, EMAIL_PASSWORD  # 別ファイルで定義
     login_link = f"http://localhost:5000/verify?token={token}"
     message = f"ログインリンク: {login_link}"
 
