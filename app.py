@@ -1,6 +1,7 @@
 from flask import Flask, request, render_template, redirect, url_for, session, jsonify
-import smtplib
+from email.message import EmailMessage
 import sqlite3
+import smtplib
 import uuid
 from datetime import datetime, timedelta
 
@@ -28,14 +29,18 @@ init_db()
 
 # メール送信（Gmail SMTP使用）
 def send_login_email(email, token):
-    from secrets__ import EMAIL_ADDRESS, EMAIL_PASSWORD  # 別ファイルで定義
-    login_link = f"http://localhost:5000/verify?token={token}"
-    message = f"ログインリンク: {login_link}"
+    from secrets import EMAIL_ADDRESS, EMAIL_PASSWORD
+    login_link = f"https://chat-app-test-for-password.onrender.com/verify?token={token}"
+
+    msg = EmailMessage()
+    msg["Subject"] = "チャットログイン"
+    msg["From"] = EMAIL_ADDRESS
+    msg["To"] = email
+    msg.set_content(f"ログインリンクはこちら:\n\n{login_link}", charset="utf-8")
 
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
         smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-        smtp.sendmail(EMAIL_ADDRESS, email, f"Subject: チャットログイン\n\n{message}")
-
+        smtp.send_message(msg)
 # ログインページ
 @app.route('/', methods=['GET', 'POST'])
 def login():
