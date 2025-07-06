@@ -103,10 +103,11 @@ def chat():
 
     email = session['user']
     with sqlite3.connect("chat.db") as conn:
-        cur = conn.execute("SELECT display_name FROM users WHERE email=?", (email,))
-        row = cur.fetchone()
+        cur = conn.execute("SELECT email, display_name FROM users")
+        rows = cur.fetchall()
 
-    display_name = row[0] if row else "Unknown"
+    display_name = rows[0][1] if rows else "Unknown"
+    email = rows[0][0] if rows else email
 
     # ✅ メッセージを読み込む
     with sqlite3.connect("chat.db") as conn:
