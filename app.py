@@ -102,7 +102,7 @@ def chat():
         return redirect(url_for('login'))
 
     email = session['user']
-    with sqlite3.connect("users.db") as conn:
+    with sqlite3.connect("chat.db") as conn:
         cur = conn.execute("SELECT display_name FROM users WHERE email=?", (email,))
         row = cur.fetchone()
 
