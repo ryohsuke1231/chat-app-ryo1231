@@ -1,15 +1,21 @@
-from flask import Flask, request, render_template, redirect, url_for, session, jsonify
+from flask import Flask, request, render_template, redirect, url_for, session, jsonify, send_from_directory
+
 #from email.message import EmailMessage
 from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
 #import smtplib
 import uuid
 from datetime import datetime, timedelta
+import os
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
 
 TOKEN_EXPIRATION_MINUTES = 10
+
+UPLOAD_FOLDER = 'uploads'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # SQLite 初期化（1つのDBに統合）
 def init_db():
@@ -129,6 +135,36 @@ def name():
     return render_template('name.html')
 """
 
+#ファイルのアップロード
+@app.route('/upload', methods=['POST'])
+def upload():
+    if 'user' not in session:
+        return "Unauthorized", 403
+
+    file = request.files.get('file')
+    if not file:
+        return "No file", 400
+
+    filename = file.filename
+    save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file.save(save_path)
+
+    now = datetime.now().strftime("%H:%M")
+    email = session['user']
+    with sqlite3.connect("chat.db") as conn:
+        cur = conn.execute("SELECT display_name FROM users WHERE email=?", (email,))
+        row = cur.fetchone()
+        name = row[0] if row else "Unknown"
+        conn.execute("INSERT INTO messages (name, text, time, read, email) VALUES (?, ?, ?, ?, ?)",
+                     (name, f"[ファイル] {filename}", now, 0, email))
+
+    return "Uploaded", 200
+
+@app.route('/files/<filename>')
+def serve_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+
 # チャット画面
 @app.route('/chat')
 def chat():
@@ -137,22 +173,23 @@ def chat():
 
     email = session['user']
     with sqlite3.connect("chat.db") as conn:
+        # 表示名の取得
         cur = conn.execute("SELECT display_name FROM users WHERE email=?", (email,))
         rows = cur.fetchall()
+        display_name = rows[0][0] if rows else "Unknown"
 
-    display_name = rows[0][0] if rows else "Unknown"
-
-    # ✅ メッセージを読み込む
-    with sqlite3.connect("chat.db") as conn:
+        # メッセージ取得
         cur = conn.execute("SELECT name, text, time, read, email FROM messages")
-        rows = cur.fetchall()
+        messages = [
+            {"name": name, "text": text, "time": time, "read": read, "email": email}
+            for name, text, time, read, email in cur.fetchall()
+        ]
 
-    messages = [
-        {"name": name, "text": text, "time": time, "read": read, "email": email}
-        for name, text, time, read, email in rows
-    ]
+        # ✅ メンバー一覧取得
+        cur = conn.execute("SELECT display_name FROM users")
+        members = [row[0] for row in cur.fetchall()]
 
-    return render_template('chat.html', user=display_name, messages=messages, email=email)
+    return render_template('chat.html', user=display_name, messages=messages, email=email, members=members)
 
 # メッセージ送信
 @app.route('/send', methods=['POST'])

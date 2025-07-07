@@ -4,8 +4,31 @@
   <meta charset="UTF-8">
   <title>チャットルーム</title>
   <style>
-    body { font-family: sans-serif; background: #f0f0f0; padding: 20px; }
-    #chat { border: 1px solid #ccc; background: #fff; padding: 10px; height: 400px; overflow-y: scroll; }
+    body {
+      font-family: sans-serif;
+      background: #f0f0f0;
+      padding: 20px;
+      margin: 0;
+    }
+
+    #container {
+      display: flex;
+      height: 90vh;
+    }
+
+    /* チャット本体 */
+    #main {
+      flex: 3;
+      padding: 10px;
+    }
+
+    #chat {
+      border: 1px solid #ccc;
+      background: #fff;
+      padding: 10px;
+      height: 400px;
+      overflow-y: scroll;
+    }
 
     .msg {
       max-width: 60%;
@@ -31,17 +54,59 @@
       color: #555;
       margin-top: 3px;
     }
+
+    /* メンバー一覧 */
+    #sidebar {
+      flex: 1;
+      padding: 10px;
+      border-left: 1px solid #ccc;
+      background-color: #fff;
+      overflow-y: auto;
+    }
+
+    #sidebar h3 {
+      margin-top: 0;
+    }
+
+    #sidebar ul {
+      list-style-type: none;
+      padding: 0;
+    }
+
+    #sidebar li {
+      padding: 5px 0;
+      border-bottom: 1px solid #ddd;
+    }
   </style>
 </head>
 <body>
   <h2>ようこそ {{ user }} さん！</h2>
-  <div id="chat"></div>
-  <input id="text" placeholder="メッセージ" style="width:70%;">
-  <button onclick="send()">送信</button>
+
+  <div id="container">
+    <!-- 左：チャット -->
+    <div id="main">
+      <div id="chat"></div>
+      <input id="text" placeholder="メッセージ" style="width:70%;">
+      <button onclick="send()">送信</button>
+      <input type="file" id="fileInput">
+      <button onclick="uploadFile()">ファイル送信</button>
+
+    </div>
+
+    <!-- 右：メンバー一覧 -->
+    <div id="sidebar">
+      <h3>メンバー</h3>
+      <ul>
+        {% for member in members %}
+          <li>{{ member }}{% if member == user %}（あなた）{% endif %}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
 
   <script>
   const userName = "{{ user }}";
-  const userEmail = "{{ email }}";  // ★ 追加
+  const userEmail = "{{ email }}";
 
   async function loadMessages() {
     const res = await fetch("/messages");
@@ -50,15 +115,18 @@
     chat.innerHTML = "";
 
     data.forEach(msg => {
-      const isMine = msg.email === userEmail;  // ✅ これで OK！
+      const isMine = msg.email === userEmail;
       const side = isMine ? "right" : "left";
       const bubble = document.createElement("div");
       bubble.className = `msg ${side}`;
       bubble.innerHTML = `
         <strong>${msg.name}</strong><br>
-        ${msg.text}
+        ${msg.text.startsWith("[ファイル] ")
+          ? `<a href="/files/${msg.text.replace("[ファイル] ", "")}" target="_blank">${msg.text.replace("[ファイル] ", "")}</a>`
+          : msg.text}
         <div class="meta">${msg.time}</div>
-      `;
+`     ;
+
       chat.appendChild(bubble);
     });
 
@@ -77,6 +145,26 @@
 
     document.getElementById("text").value = "";
     loadMessages();
+  }
+  async function uploadFile() {
+  const fileInput = document.getElementById("fileInput");
+  const file = fileInput.files[0];
+  if (!file) return alert("ファイルを選んでください");
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await fetch("/upload", {
+    method: "POST",
+    body: formData
+  });
+
+  if (res.ok) {
+    document.getElementById("fileInput").value = "";  // 初期化
+    loadMessages();  // チャット更新
+  } else {
+    alert("アップロード失敗");
+  }
   }
 
   setInterval(loadMessages, 1000);
