@@ -1,7 +1,8 @@
 from flask import Flask, request, render_template, redirect, url_for, session, jsonify
-from email.message import EmailMessage
+#from email.message import EmailMessage
+from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
-import smtplib
+#import smtplib
 import uuid
 from datetime import datetime, timedelta
 
@@ -20,7 +21,8 @@ def init_db():
         )''')
         conn.execute('''CREATE TABLE IF NOT EXISTS users (
             email TEXT PRIMARY KEY,
-            display_name TEXT
+            display_name TEXT,
+            password TEXT
         )''')
         conn.execute('''CREATE TABLE IF NOT EXISTS messages (
             name TEXT,
@@ -31,6 +33,7 @@ def init_db():
         )''')
 init_db()
 
+"""
 # メール送信
 def send_login_email(email, token):
     from secrets__ import EMAIL_ADDRESS, EMAIL_PASSWORD
@@ -45,24 +48,51 @@ def send_login_email(email, token):
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
         smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
         smtp.send_message(msg)
+"""
+
+# ユーザー登録画面
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        display_name = request.form['display_name']
+
+        hashed_password = generate_password_hash(password)
+
+        with sqlite3.connect("chat.db") as conn:
+            try:
+                conn.execute("INSERT INTO users (email, display_name, password) VALUES (?, ?, ?)",
+                             (email, display_name, hashed_password))
+            except sqlite3.IntegrityError:
+                return "このメールアドレスは既に登録されています。"
+
+        session['user'] = email
+        return redirect(url_for('chat'))
+
+    return render_template('register.html')
+
 
 # ログイン画面
 @app.route('/', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         email = request.form['email']
-        token = str(uuid.uuid4())
-        expires_at = (datetime.utcnow() + timedelta(minutes=TOKEN_EXPIRATION_MINUTES)).isoformat()
+        password = request.form['password']
 
         with sqlite3.connect("chat.db") as conn:
-            conn.execute("INSERT INTO tokens (email, token, expires_at) VALUES (?, ?, ?)",
-                         (email, token, expires_at))
+            cur = conn.execute("SELECT password FROM users WHERE email=?", (email,))
+            row = cur.fetchone()
 
-        send_login_email(email, token)
-        return "確認リンクを送信しました！メールを確認してください。"
+        if row and check_password_hash(row[0], password):
+            session['user'] = email
+            return redirect(url_for('chat'))
+        else:
+            return "メールアドレスまたはパスワードが間違っています。"
 
     return render_template('login.html')
 
+"""
 # 認証
 @app.route('/verify')
 def verify():
@@ -78,7 +108,9 @@ def verify():
         return redirect(url_for('name'))
     else:
         return "このリンクは無効か、期限が切れています。"
+"""
 
+"""
 # 名前入力ページ
 @app.route('/name', methods=['GET', 'POST'])
 def name():
@@ -95,6 +127,7 @@ def name():
         return redirect(url_for('chat'))
 
     return render_template('name.html')
+"""
 
 # チャット画面
 @app.route('/chat')

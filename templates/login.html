@@ -1,14 +1,7 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>ログイン</title>
-</head>
-<body>
-  <h1>メールでログイン</h1>
-  <form method="POST">
-    <input type="email" name="email" placeholder="メールアドレスを入力" required>
-    <button type="submit">ログインリンクを送信</button>
-  </form>
-</body>
-</html>
+<h2>ログイン</h2>
+<form method="POST">
+  <input type="email" name="email" placeholder="メールアドレス" required><br>
+  <input type="password" name="password" placeholder="パスワード" required><br>
+  <button type="submit">ログイン</button>
+</form>
+<a href="{{ url_for('register') }}">アカウント新規作成</a>
