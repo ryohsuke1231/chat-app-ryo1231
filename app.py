@@ -99,7 +99,7 @@ def register():
         # ファイルの保存
         ext = os.path.splitext(icon.filename)[1]
         filename = f"{uuid.uuid4().hex}{ext}"
-        save_path = os.path.join(app.config['ICON_FOLDER_'], filename)
+        save_path = os.path.join(app.config['ICON_FOLDER'], filename)
         icon.save(save_path)
 
         # パスワードハッシュ化
