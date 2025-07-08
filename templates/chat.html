@@ -96,11 +96,18 @@
     <!-- 右：メンバー一覧 -->
     <div id="sidebar">
       <h3>メンバー</h3>
-      <ul>
+        <ul>
         {% for member in members %}
-          <li>{{ member }}{% if member == user %}（あなた）{% endif %}</li>
-        {% endfor %}
-      </ul>
+        <li>
+          {% if member.icon %}
+            <img src="{{ url_for('serve_file', filename=member.icon) }}" alt="icon" width="32" height="32">
+          {% else %}
+            <img src="{{ url_for('static', filename='default_icon.png') }}" alt="icon" width="32" height="32">
+          {% endif %}
+          {{ member.name }}
+          </li>
+          {% endfor %}
+        </ul>
     </div>
   </div>
 
@@ -119,16 +126,25 @@
       const side = isMine ? "right" : "left";
       const bubble = document.createElement("div");
       bubble.className = `msg ${side}`;
+
+      // アイコン画像のURLを作る（ファイルが存在しない場合はデフォルトにするなど応用可）
+      const iconUrl = `/uploads/${msg.icon_filename || 'default.png'}`;
+
       bubble.innerHTML = `
+        <div class="msg-content">
+          <img src="${iconUrl}" class="icon" />
+          <div class="bubble">
         <strong>${msg.name}</strong><br>
         ${msg.text.startsWith("[ファイル] ")
           ? `<a href="/files/${msg.text.replace("[ファイル] ", "")}" target="_blank">${msg.text.replace("[ファイル] ", "")}</a>`
           : msg.text}
         <div class="meta">${msg.time}</div>
-`     ;
+      </div>
+    </div>
+  `;
 
-      chat.appendChild(bubble);
-    });
+  chat.appendChild(bubble);
+});
 
     chat.scrollTop = chat.scrollHeight;
   }

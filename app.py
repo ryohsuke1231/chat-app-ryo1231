@@ -33,7 +33,7 @@ def init_db():
             email TEXT PRIMARY KEY,
             display_name TEXT,
             password TEXT,
-            icon_filename TEXT
+            icon_filename TEXT DEFAULT NULL
         )''')
         conn.execute('''CREATE TABLE IF NOT EXISTS messages (
             name TEXT,
@@ -211,23 +211,34 @@ def chat():
 
     email = session['user']
     with sqlite3.connect("chat.db") as conn:
-        # 表示名の取得
-        cur = conn.execute("SELECT display_name FROM users WHERE email=?", (email,))
-        rows = cur.fetchall()
-        display_name = rows[0][0] if rows else "Unknown"
+        # ユーザー情報（表示名＋アイコン）を取得
+        cur = conn.execute("SELECT display_name, icon_filename FROM users WHERE email=?", (email,))
+        row = cur.fetchone()
+        display_name = row[0] if row else "Unknown"
+        user_icon = row[1] if row and row[1] else None
 
-        # メッセージ取得
+        # 全ユーザーの名前とアイコンを取得（メンバーリスト用）
+        cur = conn.execute("SELECT display_name, icon_filename FROM users")
+        members = [{"name": r[0], "icon": r[1]} for r in cur.fetchall()]
+
+        # メッセージ取得（名前だけでなく送信者のアイコンも含める場合はクエリ変更が必要）
         cur = conn.execute("SELECT name, text, time, read, email FROM messages")
-        messages = [
-            {"name": name, "text": text, "time": time, "read": read, "email": email}
-            for name, text, time, read, email in cur.fetchall()
-        ]
+        messages = []
+        for name, text, time_, read, email_ in cur.fetchall():
+            # 送信者のアイコン取得
+            cur_icon = conn.execute("SELECT icon_filename FROM users WHERE email=?", (email_,))
+            icon_row = cur_icon.fetchone()
+            icon = icon_row[0] if icon_row and icon_row[0] else None
+            messages.append({
+                "name": name,
+                "text": text,
+                "time": time_,
+                "read": read,
+                "email": email_,
+                "icon": icon
+            })
 
-        # ✅ メンバー一覧取得
-        cur = conn.execute("SELECT display_name FROM users")
-        members = [row[0] for row in cur.fetchall()]
-
-    return render_template('chat.html', user=display_name, messages=messages, email=email, members=members)
+    return render_template('chat.html', user=display_name, user_icon=user_icon, messages=messages, email=email, members=members)
 
 # メッセージ送信
 @app.route('/send', methods=['POST'])
