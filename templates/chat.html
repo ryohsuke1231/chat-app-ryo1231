@@ -100,9 +100,9 @@
         {% for member in members %}
         <li>
           {% if member.icon %}
-            <img src="{{ url_for('serve_file', filename=member.icon) }}" alt="icon" width="32" height="32">
+            <img src="{{ url_for('serve_file', filename=member.icon) }}" alt="icon" height="32">
           {% else %}
-            <img src="{{ url_for('static', filename='default_icon.png') }}" alt="icon" width="32" height="32">
+            <img src="{{ url_for('static', filename='default_icon.png') }}" alt="icon" height="32">
           {% endif %}
           {{ member.name }}
           </li>
@@ -128,7 +128,8 @@
       bubble.className = `msg ${side}`;
 
       // アイコン画像のURLを作る（ファイルが存在しない場合はデフォルトにするなど応用可）
-      const iconUrl = `/uploads/${msg.icon || 'default.jpeg'}`;
+      const iconUrl = `/icons/${msg.icon || 'default.jpeg'}`;
+      //<img src="{{ url_for('serve_file', filename=member.icon) }}" alt="icon" height="32">
 
       bubble.innerHTML = `
         <div class="msg-content">
