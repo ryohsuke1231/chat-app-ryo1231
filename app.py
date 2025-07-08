@@ -240,6 +240,11 @@ def chat():
 
     return render_template('chat.html', user=display_name, user_icon=user_icon, messages=messages, email=email, members=members)
 
+#アイコン取得
+@app.route('/icons/<filename>')
+def serve_icon(filename):
+    return send_from_directory(app.config['ICON_FOLDER'], filename)
+
 # メッセージ送信
 @app.route('/send', methods=['POST'])
 def send_message():
