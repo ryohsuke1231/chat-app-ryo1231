@@ -128,7 +128,7 @@
       bubble.className = `msg ${side}`;
 
       // アイコン画像のURLを作る（ファイルが存在しない場合はデフォルトにするなど応用可）
-      const iconUrl = `/uploads/${msg.icon_filename || 'default.png'}`;
+      const iconUrl = `/uploads/${msg.icon_filename || 'default.jpeg'}`;
 
       bubble.innerHTML = `
         <div class="msg-content">
