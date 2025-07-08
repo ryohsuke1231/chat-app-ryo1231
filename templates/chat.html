@@ -129,7 +129,7 @@
 
       // アイコン画像のURLを作る（ファイルが存在しない場合はデフォルトにするなど応用可）
       //const iconUrl = `/icons/${msg.icon || 'default.jpeg'}`;
-      const iconFilename = msg.icon ? '/icons/' + msg.icon : '/static/default_icon.jpeg';
+      const iconFilename = msg.icon ? '/icons/' + msg.icon : '/static/default.jpeg';
       const iconUrl = iconFilename;
       bubble.innerHTML = `
         <div class="msg-content">
