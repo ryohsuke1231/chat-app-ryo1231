@@ -129,8 +129,6 @@
 
       // アイコン画像のURLを作る（ファイルが存在しない場合はデフォルトにするなど応用可）
       const iconUrl = `/icons/${msg.icon || 'default.jpeg'}`;
-      //<img src="{{ url_for('serve_file', filename=member.icon) }}" alt="icon" height="32">
-
       bubble.innerHTML = `
         <div class="msg-content">
           <img src="${iconUrl}" class="icon" />
