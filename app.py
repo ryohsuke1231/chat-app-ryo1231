@@ -91,16 +91,19 @@ def register():
         password = request.form.get('password')
         display_name = request.form.get('display_name')
         icon = request.files.get('icon')
-
         # 必須チェック
-        if not email or not password or not display_name or not icon:
-            return "すべての項目（メール、名前、パスワード、アイコン画像）を入力してください。", 400
+        if not email or not password or not display_name:
+            return "すべての項目（メール、名前、パスワード）を入力してください。", 400
 
+        if not icon:
+            icon = 'static/default.jpeg'  # デフォルトアイコンのパス
+            filename = ''
+        else:
         # ファイルの保存
-        ext = os.path.splitext(icon.filename)[1]
-        filename = f"{uuid.uuid4().hex}{ext}"
-        save_path = os.path.join(app.config['ICON_FOLDER'], filename)
-        icon.save(save_path)
+            ext = os.path.splitext(icon.filename)[1]
+            filename = f"{uuid.uuid4().hex}{ext}"
+            save_path = os.path.join(app.config['ICON_FOLDER'], filename)
+            icon.save(save_path)
 
         # パスワードハッシュ化
         hashed_password = generate_password_hash(password)
