@@ -17,9 +17,9 @@ UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-#ICON_FOLDER = 'icons'
-#os.makedirs(ICON_FOLDER, exist_ok=True)
-#app.config['ICON_FOLDER'] = ICON_FOLDER
+ICON_FOLDER = 'icons'
+os.makedirs(ICON_FOLDER, exist_ok=True)
+app.config['ICON_FOLDER'] = ICON_FOLDER
 
 # SQLite 初期化（1つのDBに統合）
 def init_db():
@@ -73,7 +73,7 @@ def upload_icon():
     # ファイル名をユニーク化（例：メールアドレスのハッシュ + 拡張子）
     ext = os.path.splitext(file.filename)[1]
     filename = f"{uuid.uuid4().hex}{ext}"
-    save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    save_path = os.path.join(app.config['ICON_FOLDER'], filename)
     file.save(save_path)
 
     email = session['user']
@@ -99,7 +99,7 @@ def register():
         # ファイルの保存
         ext = os.path.splitext(icon.filename)[1]
         filename = f"{uuid.uuid4().hex}{ext}"
-        save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        save_path = os.path.join(app.config['ICON_FOLDER_'], filename)
         icon.save(save_path)
 
         # パスワードハッシュ化
