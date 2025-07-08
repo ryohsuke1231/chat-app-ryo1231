@@ -3,6 +3,7 @@
   <input type="text" name="display_name" placeholder="表示名" required><br>
   <input type="email" name="email" placeholder="メールアドレス" required><br>
   <input type="password" name="password" placeholder="パスワード(安全性の高いものに設定してください)" required><br>
+  <input type="file" name="icon" accept="image/*" required><br>
   <button type="submit">登録</button>
 </form>
 <a href="{{ url_for('login') }}">ログイン画面へ</a>

@@ -17,6 +17,10 @@ UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
+#ICON_FOLDER = 'icons'
+#os.makedirs(ICON_FOLDER, exist_ok=True)
+#app.config['ICON_FOLDER'] = ICON_FOLDER
+
 # SQLite 初期化（1つのDBに統合）
 def init_db():
     with sqlite3.connect("chat.db") as conn:
@@ -28,7 +32,8 @@ def init_db():
         conn.execute('''CREATE TABLE IF NOT EXISTS users (
             email TEXT PRIMARY KEY,
             display_name TEXT,
-            password TEXT
+            password TEXT,
+            icon_filename TEXT
         )''')
         conn.execute('''CREATE TABLE IF NOT EXISTS messages (
             name TEXT,
@@ -56,28 +61,61 @@ def send_login_email(email, token):
         smtp.send_message(msg)
 """
 
+@app.route('/upload_icon', methods=['POST'])
+def upload_icon():
+    if 'user' not in session:
+        return "Unauthorized", 403
+
+    file = request.files.get('icon')
+    if not file:
+        return "No file", 400
+
+    # ファイル名をユニーク化（例：メールアドレスのハッシュ + 拡張子）
+    ext = os.path.splitext(file.filename)[1]
+    filename = f"{uuid.uuid4().hex}{ext}"
+    save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file.save(save_path)
+
+    email = session['user']
+    with sqlite3.connect("chat.db") as conn:
+        conn.execute("UPDATE users SET icon_filename=? WHERE email=?", (filename, email))
+
+    return jsonify({"status": "ok", "filename": filename})
+
+
 # ユーザー登録画面
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        email = request.form['email']
-        password = request.form['password']
-        display_name = request.form['display_name']
+        email = request.form.get('email')
+        password = request.form.get('password')
+        display_name = request.form.get('display_name')
+        icon_file = request.files.get('icon')
 
+        # 必須チェック
+        if not email or not password or not display_name or not icon_file:
+            return "すべての項目（メール、名前、パスワード、アイコン画像）を入力してください。", 400
+
+        # ファイルの保存
+        ext = os.path.splitext(icon_file.filename)[1]
+        filename = f"{uuid.uuid4().hex}{ext}"
+        save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        icon_file.save(save_path)
+
+        # パスワードハッシュ化
         hashed_password = generate_password_hash(password)
 
         with sqlite3.connect("chat.db") as conn:
             try:
-                conn.execute("INSERT INTO users (email, display_name, password) VALUES (?, ?, ?)",
-                             (email, display_name, hashed_password))
+                conn.execute("INSERT INTO users (email, display_name, password, icon_filename) VALUES (?, ?, ?, ?)",
+                             (email, display_name, hashed_password, filename))
             except sqlite3.IntegrityError:
-                return "このメールアドレスは既に登録されています。"
+                return "このメールアドレスは既に登録されています。", 400
 
         session['user'] = email
         return redirect(url_for('chat'))
 
     return render_template('register.html')
-
 
 # ログイン画面
 @app.route('/', methods=['GET', 'POST'])
