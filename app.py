@@ -90,17 +90,17 @@ def register():
         email = request.form.get('email')
         password = request.form.get('password')
         display_name = request.form.get('display_name')
-        icon_file = request.files.get('icon')
+        icon = request.files.get('icon')
 
         # 必須チェック
-        if not email or not password or not display_name or not icon_file:
+        if not email or not password or not display_name or not icon:
             return "すべての項目（メール、名前、パスワード、アイコン画像）を入力してください。", 400
 
         # ファイルの保存
-        ext = os.path.splitext(icon_file.filename)[1]
+        ext = os.path.splitext(icon.filename)[1]
         filename = f"{uuid.uuid4().hex}{ext}"
         save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        icon_file.save(save_path)
+        icon.save(save_path)
 
         # パスワードハッシュ化
         hashed_password = generate_password_hash(password)
