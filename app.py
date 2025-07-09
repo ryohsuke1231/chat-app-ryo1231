@@ -262,7 +262,7 @@ def update_profile():
     icon = data["icon"]
 
     with sqlite3.connect("chat.db") as db:
-        db.execute("UPDATE users SET display_name=?, icon=? WHERE id=?", (name, icon, uid))
+        db.execute("UPDATE users SET display_name=?, icon_filename=? WHERE id=?", (name, icon, uid))
         db.commit()
 
         if icon:
@@ -274,7 +274,9 @@ def update_profile():
             save_path = os.path.join(app.config['ICON_FOLDER'], f"{uid}_{icon}")
             os.rename(icon_path, save_path)
 
-    return jsonify({"status": "ok"})
+    #return jsonify({"status": "ok"})
+    #return render_template('chat.html', user=name, user_icon=icon, messages=[], email=session['user'], members=[])
+    return redirect(url_for('login'))
 
 
 # メッセージ送信
