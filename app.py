@@ -240,6 +240,7 @@ def chat():
                 "email": email_,
                 "icon": icon
             })
+            print(f"Message from {name}: {text} at {time_}, read: {read}, email: {email_}, icon: {icon}")
 
     return render_template('chat.html', user=display_name, user_icon=user_icon, messages=messages, email=email, members=members)
 
