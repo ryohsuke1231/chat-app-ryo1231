@@ -263,9 +263,6 @@ def update_profile():
     print(f"Updating profile for UID {uid}: name={name}, icon={icon}")
 
     with sqlite3.connect("chat.db") as db:
-        db.execute("UPDATE users SET display_name=?, icon_filename=? WHERE id=?", (name, icon, uid))
-        #db.commit()
-
         if icon:
             # アイコンの保存
             ext = os.path.splitext(icon.filename)[1]
@@ -276,6 +273,9 @@ def update_profile():
 
             save_path = os.path.join(app.config['ICON_FOLDER'], filename)
             icon.save(save_path)
+            db.execute("UPDATE users SET display_name=?, icon_filename=? WHERE id=?", (name, filename, uid))
+        #db.commit()
+
 
     #return jsonify({"status": "ok"})
     #return render_template('chat.html', user=name, user_icon=icon, messages=[], email=session['user'], members=[])

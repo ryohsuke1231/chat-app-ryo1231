@@ -1,12 +1,104 @@
-<h2>アカウント新規作成</h2>
-<form method="POST" enctype="multipart/form-data">
-  <input type="text" name="display_name" placeholder="表示名" required><br>
-  <input type="email" name="email" placeholder="メールアドレス" required><br>
-  <input type="password" name="password" placeholder="パスワードを作成" required><br>
-  <label for="icon">アイコン画像 (任意):</label><br>
-  <small>※アップロードしない場合はデフォルトのアイコンが使用されます</small><br>
-  <!-- accept属性で画像ファイルのみを受け付け付ける -->
-  <input type="file" name="icon" accept="image/*"><br>
-  <button type="submit">登録</button>
-</form>
-<a href="{{ url_for('login') }}">ログイン画面へ</a>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>アカウント新規作成</title>
+  <style>
+    body {
+      font-family: "Helvetica Neue", sans-serif;
+      background: #f0f2f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .register-box {
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      width: 320px;
+      text-align: center;
+    }
+
+    .register-box h2 {
+      margin-bottom: 24px;
+    }
+
+    .register-box input[type="text"],
+    .register-box input[type="email"],
+    .register-box input[type="password"],
+    .register-box input[type="file"] {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .register-box label {
+      display: block;
+      margin-top: 16px;
+      font-weight: bold;
+      text-align: left;
+    }
+
+    .register-box small {
+      display: block;
+      text-align: left;
+      color: #666;
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .register-box button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 20px;
+      background-color: #2196F3;
+      border: none;
+      color: white;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .register-box button:hover {
+      background-color: #1976D2;
+    }
+
+    .register-box a {
+      display: inline-block;
+      margin-top: 20px;
+      color: #333;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    .register-box a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="register-box">
+    <h2>アカウント新規作成</h2>
+    <form method="POST" enctype="multipart/form-data">
+      <input type="text" name="display_name" placeholder="表示名" required>
+      <input type="email" name="email" placeholder="メールアドレス" required>
+      <input type="password" name="password" placeholder="パスワードを作成" required>
+
+      <label for="icon">アイコン画像 (任意):</label>
+      <small>※アップロードしない場合はデフォルトのアイコンが使用されます</small>
+      <input type="file" name="icon" accept="image/*">
+
+      <button type="submit">登録</button>
+    </form>
+    <a href="{{ url_for('login') }}">ログイン画面へ</a>
+  </div>
+</body>
+</html>
