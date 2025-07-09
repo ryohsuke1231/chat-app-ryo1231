@@ -30,6 +30,7 @@ def init_db():
             expires_at TEXT
         )''')
         conn.execute('''CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             email TEXT PRIMARY KEY,
             display_name TEXT,
             password TEXT,
@@ -128,11 +129,12 @@ def login():
         password = request.form['password']
 
         with sqlite3.connect("chat.db") as conn:
-            cur = conn.execute("SELECT password FROM users WHERE email=?", (email,))
+            cur = conn.execute("SELECT id, password FROM users WHERE email=?", (email,))
             row = cur.fetchone()
 
-        if row and check_password_hash(row[0], password):
+        if row and check_password_hash(row[1], password):
             session['user'] = email
+            session['uid'] = row[0]  # ← ここを追加！
             return redirect(url_for('chat'))
         else:
             return "メールアドレスまたはパスワードが間違っています。"
@@ -251,12 +253,15 @@ def serve_icon(filename):
 
 @app.route("/api/update-profile", methods=["POST"])
 def update_profile():
+    uid = session.get("uid")
+    if not uid:
+        return jsonify({"error": "ログインしていません"}), 401
+
     data = request.get_json()
-    uid = session["uid"]
     name = data["name"]
     icon = data["icon"]
-    with sqlite3.connect("chat.db") as db:
 
+    with sqlite3.connect("chat.db") as db:
         db.execute("UPDATE users SET name=?, icon=? WHERE id=?", (name, icon, uid))
         db.commit()
 
@@ -266,9 +271,9 @@ def update_profile():
             if not os.path.exists(icon_path):
                 return jsonify({"error": "アイコンファイルが見つかりません"}), 404
 
-            # アイコンをアップロードフォルダに保存
             save_path = os.path.join(app.config['ICON_FOLDER'], f"{uid}_{icon}")
             os.rename(icon_path, save_path)
+
     return jsonify({"status": "ok"})
 
 
