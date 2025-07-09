@@ -262,7 +262,7 @@ def update_profile():
     icon = data["icon"]
 
     with sqlite3.connect("chat.db") as db:
-        db.execute("UPDATE users SET name=?, icon=? WHERE id=?", (name, icon, uid))
+        db.execute("UPDATE users SET display_name=?, icon=? WHERE id=?", (name, icon, uid))
         db.commit()
 
         if icon:
