@@ -9,9 +9,10 @@
     <label>表示名:<br>
       <input type="text" id="displayNameInput">
     </label><br>
-    <label>アイコンURL:<br>
-      <input type="text" id="iconUrlInput">
-    </label><br><br>
+    <label for="icon">アイコン画像 (任意):</label><br>
+    <small>※アップロードしない場合はデフォルトのアイコンが使用されます</small><br>
+    <!-- accept属性で画像ファイルのみを受け付け付ける -->
+    <input type="file" name="icon" accept="image/*" id="iconInput"><br>
     <button id="logout">ログアウト</button>
     <button id="saveSettings">保存</button>
     <button id="closeSettings">キャンセル</button>
@@ -104,7 +105,7 @@
       border-left: 1px solid #ccc;
       background-color: #fff;
       overflow-y: auto;
-      min-width: 200px; /* 狭くなりすぎないように */
+      min-width: 80px; /* 狭くなりすぎないように */
     }
 
     #sidebar h3 {
@@ -247,7 +248,12 @@
 
     // 入力欄に現在の情報を入れる
     document.getElementById("displayNameInput").value = currentUser.name;
-    document.getElementById("iconUrlInput").value = currentUser.icon;
+    // ファイル入力は空のまま（セット不可）
+    document.getElementById("iconInput").value = ""; // 何もしなくても空
+
+    // アイコンプレビューは更新
+    document.getElementById("currentIconPreview").src = currentUser.iconUrl;
+
   };
 
   document.getElementById("closeSettings").onclick = () => {
