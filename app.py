@@ -280,13 +280,21 @@ def get_messages():
         cur = conn.execute("SELECT name, text, time, read, email FROM messages")
         rows = cur.fetchall()
 
-    messages = [
-        {"name": name, "text": text, "time": time, "read": read, "email": email}
-        for name, text, time, read, email in rows
-    ]
+        messages = []
+        for name, text, time_, read, email in rows:
+            cur_icon = conn.execute("SELECT icon_filename FROM users WHERE email=?", (email,))
+            icon_row = cur_icon.fetchone()
+            icon = icon_row[0] if icon_row and icon_row[0] else None
+            messages.append({
+                "name": name,
+                "text": text,
+                "time": time_,
+                "read": read,
+                "email": email,
+                "icon": icon
+            })
 
     return jsonify(messages)
-
 
 # ログアウト
 @app.route('/logout')
