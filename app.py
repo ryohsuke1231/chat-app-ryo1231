@@ -249,6 +249,29 @@ def chat():
 def serve_icon(filename):
     return send_from_directory(app.config['ICON_FOLDER'], filename)
 
+@app.route("/api/update-profile", methods=["POST"])
+def update_profile():
+    data = request.get_json()
+    uid = session["uid"]
+    name = data["name"]
+    icon = data["icon"]
+    with sqlite3.connect("chat.db") as db:
+
+        db.execute("UPDATE users SET name=?, icon=? WHERE id=?", (name, icon, uid))
+        db.commit()
+
+        if icon:
+            # アイコンの保存
+            icon_path = os.path.join(app.config['ICON_FOLDER'], icon)
+            if not os.path.exists(icon_path):
+                return jsonify({"error": "アイコンファイルが見つかりません"}), 404
+
+            # アイコンをアップロードフォルダに保存
+            save_path = os.path.join(app.config['ICON_FOLDER'], f"{uid}_{icon}")
+            os.rename(icon_path, save_path)
+    return jsonify({"status": "ok"})
+
+
 # メッセージ送信
 @app.route('/send', methods=['POST'])
 def send_message():

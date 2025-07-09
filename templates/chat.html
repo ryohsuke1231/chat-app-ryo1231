@@ -3,6 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <title>チャットルーム</title>
+  <button id="settingsBtn">⚙️ 設定</button>
+  <div id="settingsModal" class="modal" style="display: none;">
+  <h3>プロフィール設定</h3>
+    <label>表示名:<br>
+      <input type="text" id="displayNameInput">
+    </label><br>
+    <label>アイコンURL:<br>
+      <input type="text" id="iconUrlInput">
+    </label><br><br>
+    <button id="logout">ログアウト</button>
+    <button id="saveSettings">保存</button>
+    <button id="closeSettings">キャンセル</button>
+  </div>
+
   <style>
     body {
       font-family: sans-serif;
@@ -105,6 +119,7 @@
       padding: 5px 0;
       border-bottom: 1px solid #ddd;
     }
+
   </style>
 </head>
 <body>
@@ -225,6 +240,38 @@
     alert("アップロード失敗");
   }
   }
+  document.getElementById("settingsBtn").onclick = () => {
+    // モーダルを開く
+    document.getElementById("settingsModal").style.display = "block";
+
+    // 入力欄に現在の情報を入れる
+    document.getElementById("displayNameInput").value = currentUser.name;
+    document.getElementById("iconUrlInput").value = currentUser.icon;
+  };
+
+  document.getElementById("closeSettings").onclick = () => {
+    document.getElementById("settingsModal").style.display = "none";
+  };
+
+  document.getElementById("saveSettings").onclick = async () => {
+    const newName = document.getElementById("displayNameInput").value;
+    const newIcon = document.getElementById("iconUrlInput").value;
+
+    // サーバーに送信（POSTなど）
+    await fetch("/api/update-profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newName, icon: newIcon }),
+    });
+
+    // クライアント側にも即反映
+    currentUser.name = newName;
+    currentUser.icon = newIcon;
+    location.reload();
+    alert("プロフィールを更新しました");
+    document.getElementById("settingsModal").style.display = "none";
+  };
+
 
   setInterval(loadMessages, 1000);
   loadMessages();
