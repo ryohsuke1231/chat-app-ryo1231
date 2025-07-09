@@ -16,12 +16,6 @@
       height: 90vh;
     }
 
-    /* チャット本体 */
-    #main {
-      flex: 3;
-      padding: 10px;
-    }
-
     #chat {
       border: 1px solid #ccc;
       background: #fff;
@@ -39,48 +33,54 @@
       position: relative;
     }
 
-    /* 他人のメッセージ（左） */
-  .left {
+    .left {
       background-color: #eee;
       float: left;
     }
 
-    /* 自分のメッセージ（右） */
     .right {
       background-color: #acf;
       float: right;
       text-align: right;
     }
 
-    /* メッセージの中身全体（名前・本文・アイコン） */
+    /* メッセージ本体の見た目 */
     .msg-content {
       display: flex;
+      flex-direction: column;
+    }
+
+    /* 名前とアイコンを横並び */
+    .header {
+      display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 5px;
     }
 
-    /* 自分のメッセージでは逆順にして右寄せ */
-    .right .msg-content {
+    /* 自分のメッセージ（右寄せ）では名前＋アイコンを右寄せに */
+    .right .header {
       flex-direction: row-reverse;
+      justify-content: flex-end;
     }
 
-    /* 名前・本文・時刻の囲い */
-    .bubble {
-      background: inherit;
-      padding: 4px;
-      border-radius: 8px;
-      flex-grow: 1;}
+    /* テキスト本文 */
+    .text {
+      margin-top: 4px;
+      word-break: break-word;
+    }
 
-    /* 時刻の表示 */
+    /* メタ情報（時間） */
     .meta {
       font-size: 0.8em;
       color: #555;
       margin-top: 3px;
     }
 
-    /* アイコンの基本スタイル */
+    /* アイコン画像 */
     .icon {
       border-radius: 50%;
+      width: 24px;
+      height: 24px;
     }
 
     /* メンバー一覧 */
@@ -160,28 +160,24 @@
       const iconUrl = msg.icon ? '/icons/' + msg.icon : '/static/default.jpeg';
       //const iconUrl = iconFilename;
       bubble.innerHTML = `
-        <div class="msg-content" style="text-align: ${side};">
-          ${isMine ? `
-            <div class="bubble">
-              <strong>${msg.name}</strong><br>
-              ${msg.text.startsWith("[ファイル] ")
-                ? `<a href="/files/${msg.text.replace("[ファイル] ", "")}" target="_blank">${msg.text.replace("[ファイル] ", "")}</a>`
-                : msg.text}
-              <div class="meta">${msg.time}</div>
+        <div class="msg-content">
+          <div class="bubble">
+            <div class="header">
+              <img src="${iconUrl}" class="icon" height="24" />
+              <strong>${msg.name}</strong>
             </div>
-            <img src="${iconUrl}" class="icon" height="32" style="margin-left: 8px;" />
-    `       : `
-            <img src="${iconUrl}" class="icon" height="32" style="margin-right: 8px;" />
-            <div class="bubble">
-              <strong>${msg.name}</strong><br>
-              ${msg.text.startsWith("[ファイル] ")
-                ? `<a href="/files/${msg.text.replace("[ファイル] ", "")}" target="_blank">${msg.text.replace("[ファイル] ", "")}</a>`
-                : msg.text}
-              <div class="meta">${msg.time}</div>
+            <div class="text">
+              ${
+                msg.text.startsWith("[ファイル] ")
+                  ? `<a href="/files/${msg.text.replace("[ファイル] ", "")}" target="_blank">${msg.text.replace("[ファイル] ", "")}</a>`
+                  : msg.text
+              }
             </div>
-    `     }
+            <div class="meta">${msg.time}</div>
+          </div>
         </div>
       `;
+
       bubble.style.backgroundColor = isMine ? "#acf" : "#eee";
       bubble.style.color = isMine ? "#000" : "#333";
       bubble.style.borderRadius = "10px";
