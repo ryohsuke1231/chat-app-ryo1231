@@ -40,7 +40,7 @@
       border: 1px solid #ccc;
       background: #fff;
       padding: 10px;
-      /*height: 400px;*/
+      height: 600px;
       overflow-y: scroll;
     }
 
@@ -275,19 +275,18 @@
     const newName = document.getElementById("displayNameInput").value;
     const newIcon = document.getElementById("iconInput").value;
 
-    // サーバーに送信（POSTなど）
-    await fetch("/api/update-profile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newName, icon: newIcon }),
-    });
-
     // クライアント側にも即反映
     currentUser.name = newName;
     currentUser.icon = newIcon;
     location.reload();
     alert("プロフィールを更新しました");
     document.getElementById("settingsModal").style.display = "none";
+    // サーバーに送信（POSTなど）
+    await fetch("/api/update-profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newName, icon: newIcon }),
+    });
   };
 
 
