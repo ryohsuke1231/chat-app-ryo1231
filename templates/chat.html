@@ -11,7 +11,7 @@
     </label><br>
     <label>現在のアイコン:</label><br>
     <img id="currentIconPreview" src="" alt="現在のアイコン" height="64"><br><br>
-    
+
     <label for="icon">アイコン画像 (任意):</label><br>
     <small>※アップロードしない場合はデフォルトのアイコンが使用されます</small><br>
     <!-- accept属性で画像ファイルのみを受け付け付ける -->
@@ -35,6 +35,7 @@
     }
 
     #chat {
+      flex: 3;
       border: 1px solid #ccc;
       background: #fff;
       padding: 10px;
@@ -265,7 +266,7 @@
 
   document.getElementById("saveSettings").onclick = async () => {
     const newName = document.getElementById("displayNameInput").value;
-    const newIcon = document.getElementById("iconUrlInput").value;
+    const newIcon = document.getElementById("iconInput").value;
 
     // サーバーに送信（POSTなど）
     await fetch("/api/update-profile", {
