@@ -1,116 +1,114 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
   <meta charset="UTF-8">
   <title>チャットルーム</title>
-  <button id="settingsBtn">⚙️ 設定</button>
-  <div id="settingsModal" class="modal" style="display: none;">
-  <h3>プロフィール設定</h3>
-    <label>表示名:<br>
-      <input type="text" id="displayNameInput"> 
-    </label><br>
-    <label>現在のアイコン:</label><br>
-    <img id="currentIconPreview" src="" alt="現在のアイコン" height="64"><br><br>
-
-    <label for="icon">アイコン画像 (任意):</label><br>
-    <small>※アップロードしない場合はデフォルトのアイコンが使用されます</small><br>
-    <!-- accept属性で画像ファイルのみを受け付け付ける -->
-    <input type="file" name="icon" accept="image/*" id="iconInput"><br>
-
-    <button id="logout">ログアウト</button>
-    <button id="saveSettings">保存</button>
-    <button id="closeSettings">キャンセル</button>
-  </div>
-
   <style>
     body {
-      font-family: noto-sans-jp, sans-serif;
-      background: #f0f0f0;
-      padding: 20px;
+      font-family: 'Noto Sans JP', sans-serif;
+      background: #f5f6fa;
       margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background-color: #2f3640;
+      color: white;
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #settingsBtn {
+      font-size: 1.2em;
+      background: none;
+      border: none;
+      color: white;
+      cursor: pointer;
     }
 
     #container {
       display: flex;
-      height: 90vh;
+      height: calc(100vh - 50px);
+    }
+
+    #main {
+      flex: 3;
+      padding: 20px;
+      background: white;
+      display: flex;
+      flex-direction: column;
     }
 
     #chat {
       flex: 1;
       border: 1px solid #ccc;
-      background: #fff;
       padding: 10px;
-      height: 600px;
       overflow-y: scroll;
+      margin-bottom: 10px;
+      background-color: #ecf0f1;
     }
 
     .msg {
       max-width: 60%;
       margin: 5px;
-      padding: 8px;
+      padding: 10px;
       border-radius: 10px;
       clear: both;
       position: relative;
     }
 
     .left {
-      background-color: #eee;
+      background-color: #dcdde1;
       float: left;
     }
 
     .right {
-      background-color: #acf;
+      background-color: #74b9ff;
       float: right;
       text-align: right;
     }
 
-    /* メッセージ本体の見た目 */
     .msg-content {
       display: flex;
       flex-direction: column;
     }
 
-    /* 名前とアイコンを横並び */
     .header {
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 6px;
     }
 
-    /* 自分のメッセージ（右寄せ）では名前＋アイコンを右寄せに */
     .right .header {
       flex-direction: row-reverse;
       justify-content: flex-end;
     }
 
-    /* テキスト本文 */
     .text {
-      margin-top: 4px;
+      margin-top: 5px;
       word-break: break-word;
     }
 
-    /* メタ情報（時間） */
     .meta {
       font-size: 0.8em;
       color: #555;
-      margin-top: 3px;
+      margin-top: 4px;
     }
 
-    /* アイコン画像 */
     .icon {
       border-radius: 50%;
-      width: 24px;
-      height: 24px;
+      width: 28px;
+      height: 28px;
     }
 
-    /* メンバー一覧 */
     #sidebar {
-      /*flex: 1;*/
-      padding: 10px;
+      flex: 1;
+      background-color: #fdfdfd;
+      padding: 20px;
       border-left: 1px solid #ccc;
-      background-color: #fff;
       overflow-y: auto;
-      /*min-width: 80px; /* 狭くなりすぎないように*/
     }
 
     #sidebar h3 {
@@ -123,175 +121,231 @@
     }
 
     #sidebar li {
-      padding: 5px 0;
-      border-bottom: 1px solid #ddd;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      border-bottom: 1px solid #eee;
     }
 
+    input[type="text"],
+    input[type="file"] {
+      padding: 8px;
+      margin-right: 10px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      padding: 8px 14px;
+      border: none;
+      border-radius: 5px;
+      background-color: #0984e3;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #74b9ff;
+    }
+
+    .modal {
+      position: absolute;
+      top: 20%;
+      left: 50%;
+      transform: translate(-50%, -20%);
+      background-color: white;
+      border: 1px solid #ccc;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      min-width: 300px;
+    }
   </style>
 </head>
 <body>
-  <h2>ようこそ {{ user }} さん！</h2>
+  <header>
+    <h2>ようこそ {{ user }} さん！</h2>
+    <button id="settingsBtn">⚙️</button>
+  </header>
 
+  <!-- チャット本体 -->
   <div id="container">
-    <!-- 左：チャット -->
     <div id="main">
       <div id="chat"></div>
-      <input id="text" placeholder="メッセージ" style="width:70%;">
-      <button onclick="send()">送信</button>
-      <input type="file" id="fileInput">
-      <button onclick="uploadFile()">ファイル送信</button>
-
+      <div>
+        <input id="text" placeholder="メッセージ" style="width:60%;">
+        <button onclick="send()">送信</button>
+        <input type="file" id="fileInput">
+        <button onclick="uploadFile()">ファイル送信</button>
+      </div>
     </div>
 
-    <!-- 右：メンバー一覧 -->
     <div id="sidebar">
       <h3>メンバー</h3>
-        <ul>
+      <ul>
         {% for member in members %}
         <li>
-          {% if member.icon %}
-            <img src="{{ url_for('serve_icon', filename=member.icon) }}" alt="icon" height="32">
-          {% else %}
-            <img src="{{ url_for('static', filename='default.jpeg') }}" alt="icon" height="32">
-          {% endif %}
+          <img src="{{ url_for('serve_icon', filename=member.icon) if member.icon else url_for('static', filename='default.jpeg') }}" height="32" class="icon">
           {{ member.name }}
-          </li>
-          {% endfor %}
-        </ul>
+        </li>
+        {% endfor %}
+      </ul>
     </div>
   </div>
 
+  <!-- モーダル（プロフィール設定） -->
+  <div id="settingsModal" class="modal" style="display: none;">
+    <h3>プロフィール設定</h3>
+    <label>表示名:<br>
+      <input type="text" id="displayNameInput">
+    </label><br><br>
+    <label>現在のアイコン:</label><br>
+    <img id="currentIconPreview" src="" alt="現在のアイコン" height="64"><br><br>
+    <label for="icon">アイコン画像 (任意):</label><br>
+    <input type="file" name="icon" accept="image/*" id="iconInput"><br><br>
+    <button id="logout">ログアウト</button>
+    <button id="saveSettings">保存</button>
+    <button id="closeSettings">キャンセル</button>
+  </div>
+
+  <!-- JavaScript は元のままでOK -->
   <script>
-  const userName = "{{ user }}";
-  const userEmail = "{{ email }}";
-  const currentUser = {
-    name: userName,
-    icon: "{{ icon }}",
-    iconUrl: "{{ url_for('serve_icon', filename=icon) }}"
-  };
+    // ここにJSコードを入れる（元のコードをそのまま使える）
+    const userName = "{{ user }}";
+    
+    const userEmail = "{{ email }}";
+    const currentUser = {
+      name: userName,
+      icon: "{{ icon }}",
+      iconUrl: "{{ url_for('serve_icon', filename=icon) }}"
+    };
 
 
-  async function loadMessages() {
-    const res = await fetch("/messages");
-    const data = await res.json();
-    const chat = document.getElementById("chat");
-    chat.innerHTML = "";
+    async function loadMessages() {
+      const res = await fetch("/messages");
+      const data = await res.json();
+      const chat = document.getElementById("chat");
+      chat.innerHTML = "";
 
-    data.forEach(msg => {
-      const isMine = msg.email === userEmail;
-      const side = isMine ? "right" : "left";
-      const bubble = document.createElement("div");
-      bubble.className = `msg ${side}`;
+      data.forEach(msg => {
+        const isMine = msg.email === userEmail;
+        const side = isMine ? "right" : "left";
+        const bubble = document.createElement("div");
+        bubble.className = `msg ${side}`;
 
-      // アイコン画像のURLを作る（ファイルが存在しない場合はデフォルトにするなど応用可）
-      //const iconUrl = `/icons/${msg.icon || 'default.jpeg'}`;
-      const iconUrl = msg.icon ? '/icons/' + msg.icon : '/static/default.jpeg';
-      //const iconUrl = iconFilename;
-      bubble.innerHTML = `
-        <div class="msg-content">
-          <div class="bubble">
-            <div class="header">
-              <img src="${iconUrl}" class="icon" height="24" />
-              <strong>${msg.name}</strong>
+        // アイコン画像のURLを作る（ファイルが存在しない場合はデフォルトにするなど応用可）
+        //const iconUrl = `/icons/${msg.icon || 'default.jpeg'}`;
+        const iconUrl = msg.icon ? '/icons/' + msg.icon : '/static/default.jpeg';
+        //const iconUrl = iconFilename;
+        bubble.innerHTML = `
+          <div class="msg-content">
+            <div class="bubble">
+              <div class="header">
+                <img src="${iconUrl}" class="icon" height="24" />
+                <strong>${msg.name}</strong>
+              </div>
+              <div class="text">
+                ${
+                  msg.text.startsWith("[ファイル] ")
+                    ? `<a href="/files/${msg.text.replace("[ファイル] ", "")}" target="_blank">${msg.text.replace("[ファイル] ", "")}</a>`
+                    : msg.text
+                }
+              </div>
+              <div class="meta">${msg.time}</div>
             </div>
-            <div class="text">
-              ${
-                msg.text.startsWith("[ファイル] ")
-                  ? `<a href="/files/${msg.text.replace("[ファイル] ", "")}" target="_blank">${msg.text.replace("[ファイル] ", "")}</a>`
-                  : msg.text
-              }
-            </div>
-            <div class="meta">${msg.time}</div>
           </div>
-        </div>
-      `;
+        `;
 
-      bubble.style.backgroundColor = isMine ? "#acf" : "#eee";
-      bubble.style.color = isMine ? "#000" : "#333";
-      bubble.style.borderRadius = "10px";
-      bubble.style.padding = "8px";
-      bubble.style.margin = "5px";
-      bubble.style.clear = "both";
-      bubble.style.position = "relative";
+        bubble.style.backgroundColor = isMine ? "#acf" : "#eee";
+        bubble.style.color = isMine ? "#000" : "#333";
+        bubble.style.borderRadius = "10px";
+        bubble.style.padding = "8px";
+        bubble.style.margin = "5px";
+        bubble.style.clear = "both";
+        bubble.style.position = "relative";
 
-  chat.appendChild(bubble);
-});
-
-    chat.scrollTop = chat.scrollHeight;
-  }
-
-  async function send() {
-    const text = document.getElementById("text").value;
-    if (!text.trim()) return;
-
-    await fetch("/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: userName, text })
-    });
-
-    document.getElementById("text").value = "";
-    loadMessages();
-  }
-  async function uploadFile() {
-  const fileInput = document.getElementById("fileInput");
-  const file = fileInput.files[0];
-  if (!file) return alert("ファイルを選んでください");
-
-  const formData = new FormData();
-  formData.append("file", file);
-
-  const res = await fetch("/upload", {
-    method: "POST",
-    body: formData
+    chat.appendChild(bubble);
   });
 
-  if (res.ok) {
-    document.getElementById("fileInput").value = "";  // 初期化
-    loadMessages();  // チャット更新
-  } else {
-    alert("アップロード失敗");
-  }
-  }
-  document.getElementById("settingsBtn").onclick = () => {
-    // モーダルを開く
-    document.getElementById("settingsModal").style.display = "block";
+      chat.scrollTop = chat.scrollHeight;
+    }
 
-    // 入力欄に現在の情報を入れる
-    document.getElementById("displayNameInput").value = currentUser.name;
-    // ファイル入力は空のまま（セット不可）
-    document.getElementById("iconInput").value = ""; // 何もしなくても空
+    async function send() {
+      const text = document.getElementById("text").value;
+      if (!text.trim()) return;
 
-    // アイコンプレビューは更新
-    document.getElementById("currentIconPreview").src = currentUser.iconUrl;
+      await fetch("/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: userName, text })
+      });
 
-  };
+      document.getElementById("text").value = "";
+      loadMessages();
+    }
+    async function uploadFile() {
+    const fileInput = document.getElementById("fileInput");
+    const file = fileInput.files[0];
+    if (!file) return alert("ファイルを選んでください");
 
-  document.getElementById("closeSettings").onclick = () => {
-    document.getElementById("settingsModal").style.display = "none";
-  };
+    const formData = new FormData();
+    formData.append("file", file);
 
-  document.getElementById("saveSettings").onclick = async () => {
-    const newName = document.getElementById("displayNameInput").value;
-    const newIcon = document.getElementById("iconInput").value;
-
-    // クライアント側にも即反映
-    currentUser.name = newName;
-    currentUser.icon = newIcon;
-    location.reload();
-    alert("プロフィールを更新しました");
-    document.getElementById("settingsModal").style.display = "none";
-    // サーバーに送信（POSTなど）
-    await fetch("/api/update-profile", {
+    const res = await fetch("/upload", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newName, icon: newIcon }),
+      body: formData
     });
-  };
+
+    if (res.ok) {
+      document.getElementById("fileInput").value = "";  // 初期化
+      loadMessages();  // チャット更新
+    } else {
+      alert("アップロード失敗");
+    }
+    }
+    document.getElementById("settingsBtn").onclick = () => {
+      // モーダルを開く
+      document.getElementById("settingsModal").style.display = "block";
+
+      // 入力欄に現在の情報を入れる
+      document.getElementById("displayNameInput").value = currentUser.name;
+      // ファイル入力は空のまま（セット不可）
+      document.getElementById("iconInput").value = ""; // 何もしなくても空
+
+      // アイコンプレビューは更新
+      document.getElementById("currentIconPreview").src = currentUser.iconUrl;
+
+    };
+
+    document.getElementById("closeSettings").onclick = () => {
+      document.getElementById("settingsModal").style.display = "none";
+    };
+
+    document.getElementById("saveSettings").onclick = async () => {
+      const newName = document.getElementById("displayNameInput").value;
+      const newIcon = document.getElementById("iconInput").value;
+
+      // クライアント側にも即反映
+      currentUser.name = newName;
+      currentUser.icon = newIcon;
+      location.reload();
+      alert("プロフィールを更新しました");
+      document.getElementById("settingsModal").style.display = "none";
+      // サーバーに送信（POSTなど）
+      await fetch("/api/update-profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newName, icon: newIcon }),
+      });
+    };
 
 
-  setInterval(loadMessages, 1000);
-  loadMessages();
+    setInterval(loadMessages, 1000);
+    loadMessages();
+
   </script>
 </body>
 </html>
+
