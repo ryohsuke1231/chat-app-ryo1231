@@ -222,7 +222,7 @@
       iconUrl: "{{ url_for('serve_icon', filename=icon) }} if icon else url_for('static', filename='default.jpeg') }}"
     };
 
-    let latestMessageId = null;
+    let latestMessageId = 0;
     async function loadMessages() {
       const res = await fetch("/messages");
       const data = await res.json();
@@ -231,7 +231,7 @@
       let shouldScroll = chat.scrollTop + chat.clientHeight >= chat.scrollHeight - 10;
 
       data.forEach(msg => {
-        if (msg.id === latestMessageId) return; // 同じIDならスキップ
+        if (msg.id <= latestMessageId) return;  // すでに表示済みならスキップ
         const isMine = msg.email === userEmail;
         const side = isMine ? "right" : "left";
         const bubble = document.createElement("div");
@@ -268,7 +268,9 @@
         bubble.style.clear = "both";
         bubble.style.position = "relative";
     
-    latestMessageId = msg.id;  // 最新メッセージのIDを記録
+      if (msg.id > latestMessageId) {
+        latestMessageId = msg.id;
+      }
     chat.appendChild(bubble);
   });
 

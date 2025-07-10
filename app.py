@@ -37,7 +37,7 @@ def init_db():
             icon_filename TEXT DEFAULT NULL
         )''')
         conn.execute('''CREATE TABLE IF NOT EXISTS messages (
-            id PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT,
             text TEXT,
             time TEXT,
