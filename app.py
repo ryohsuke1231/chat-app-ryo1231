@@ -138,7 +138,8 @@ def login():
             session['uid'] = row[0]  # ← ここを追加！
             return redirect(url_for('chat'))
         else:
-            return "メールアドレスまたはパスワードが間違っています。"
+            #return render_template('login_failed.html')
+            return render_template('login.html', error="メールアドレスまたはパスワードが間違っています。")
 
     return render_template('login.html')
 

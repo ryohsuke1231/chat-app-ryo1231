@@ -69,6 +69,17 @@
 <body>
   <div class="login-box">
     <h2>ログイン</h2>
+
+    {% if error %}
+      <script>
+        alert("{{ error }}");
+        window.onload = function() {
+          document.querySelector("input[name='email']").value = "";
+          document.querySelector("input[name='password']").value = "";
+        };
+      </script>
+    {% endif %}
+
     <form method="POST">
       <input type="email" name="email" placeholder="メールアドレス" required>
       <input type="password" name="password" placeholder="パスワード" required>
@@ -77,4 +88,3 @@
     <a href="{{ url_for('register') }}">アカウント新規作成</a>
   </div>
 </body>
-</html>
