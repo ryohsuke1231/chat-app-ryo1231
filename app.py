@@ -192,15 +192,15 @@ def upload():
     filename = file.filename
     save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(save_path)
-    id = str(uuid.uuid4())
+    #id = str(uuid.uuid4())
     now = datetime.now().strftime("%H:%M")
     email = session['user']
     with sqlite3.connect("chat.db") as conn:
         cur = conn.execute("SELECT display_name FROM users WHERE email=?", (email,))
         row = cur.fetchone()
         name = row[0] if row else "Unknown"
-        conn.execute("INSERT INTO messages (id, name, text, time, read, email) VALUES (?, ?, ?, ?, ?, ?)",
-                     (id, name, f"[ファイル] {filename}", now, 0, email))
+        conn.execute("INSERT INTO messages (name, text, time, read, email) VALUES (?, ?, ?, ?, ?)",
+                     (name, f"[ファイル] {filename}", now, 0, email))
 
     return "Uploaded", 200
 
@@ -302,12 +302,12 @@ def send_message():
 
     name = row[0] if row else "Unknown"
     text = data.get("text", "")
-    random_id = str(uuid.uuid4())
+    #random_id = str(uuid.uuid4())
 
     with sqlite3.connect("chat.db") as conn:
         #conn.execute("ALTER TABLE messages ADD COLUMN email TEXT")  # 初回だけ実行すればOK
-        conn.execute("INSERT INTO messages (id, name, text, time, read, email) VALUES (?, ?, ?, ?, ?, ?)",
-                     (random_id, name, text, now, 0, email))
+        conn.execute("INSERT INTO messages (name, text, time, read, email) VALUES (?, ?, ?, ?, ?)",
+                     (name, text, now, 0, email))
 
     return jsonify({"status": "ok"})
 
