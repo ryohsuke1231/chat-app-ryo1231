@@ -274,7 +274,7 @@ def update_profile():
             db.execute("UPDATE users SET display_name=? WHERE id=?", (name, uid))
 
     session.clear()
-    return redirect(url_for('login'))
+    return redirect('login')
 
 # メッセージ送信
 @app.route('/send', methods=['POST'])

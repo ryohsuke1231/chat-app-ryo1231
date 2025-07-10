@@ -387,27 +387,39 @@
       document.getElementById("saveSettings").onclick = async () => {
         const formData = new FormData();
         formData.append("name", document.getElementById("newName").value);
-        formData.append("icon", document.getElementById("newIcon").files[0]);
 
-        userName = formData.get("name") || userName;  // 新しい名前が空なら元の名前を使う
-        currentUser.name = userName;  // 更新
-        currentUser.icon = formData.get("icon") ? formData.get("icon").name : currentUser.icon;  // 新しいアイコンがあれば更新
+        const fileInput = document.getElementById("newIcon");
+        if (fileInput.files.length > 0) {
+          formData.append("icon", fileInput.files[0]);
+        }
 
-        fetch("/api/update-profile", {
-          method: "POST",
-          body: formData
-        }).then(res => {
+        const newName = formData.get("name");
+        const newIcon = formData.get("icon");
+
+        userName = newName || userName;
+        currentUser.name = userName;
+
+        if (newIcon instanceof File && newIcon.name) {
+          currentUser.icon = newIcon.name;
+        }
+
+        try {
+          const res = await fetch("/api/update-profile", {
+            method: "POST",
+            body: formData
+          });
+
           if (res.redirected) {
             window.location.href = res.url;
           } else {
             alert("プロフィールを更新できませんでした。");
           }
-        }).catch(err => {
+        } catch (err) {
           console.error("Error updating profile:", err);
           alert("プロフィールの更新中にエラーが発生しました。");
-        });
-        document.getElementById("settingsModal").style.display = "none";
+        }
 
+        document.getElementById("settingsModal").style.display = "none";
       };
 
 
