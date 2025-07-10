@@ -213,23 +213,25 @@
   <!-- JavaScript は元のままでOK -->
   <script>
     // ここにJSコードを入れる（元のコードをそのまま使える）
-    const userName = "{{ user }}";
+    userName = "{{ user }}";
     
-    const userEmail = "{{ email }}";
-    const currentUser = {
+    userEmail = "{{ email }}";
+    currentUser = {
       name: userName,
       icon: "{{ icon }}",
-      iconUrl: "{{ url_for('serve_icon', filename=icon) }}"
+      iconUrl: "{{ url_for('serve_icon', filename=icon) }} if icon else url_for('static', filename='default.jpeg') }}"
     };
 
-
+    let latestMessageId = null;
     async function loadMessages() {
       const res = await fetch("/messages");
       const data = await res.json();
       const chat = document.getElementById("chat");
-      chat.innerHTML = "";
+      //chat.innerHTML = "";
+      let shouldScroll = chat.scrollTop + chat.clientHeight >= chat.scrollHeight - 10;
 
       data.forEach(msg => {
+        if (msg.id === latestMessageId) return; // 同じIDならスキップ
         const isMine = msg.email === userEmail;
         const side = isMine ? "right" : "left";
         const bubble = document.createElement("div");
@@ -265,11 +267,14 @@
         bubble.style.margin = "5px";
         bubble.style.clear = "both";
         bubble.style.position = "relative";
-
+    
+    latestMessageId = msg.id;  // 最新メッセージのIDを記録
     chat.appendChild(bubble);
   });
 
-      chat.scrollTop = chat.scrollHeight;
+  if (shouldScroll) {
+    chat.scrollTop = chat.scrollHeight;
+  }
     }
 
     async function send() {
@@ -286,66 +291,67 @@
       loadMessages();
     }
     async function uploadFile() {
-    const fileInput = document.getElementById("fileInput");
-    const file = fileInput.files[0];
-    if (!file) return alert("ファイルを選んでください");
+      const fileInput = document.getElementById("fileInput");
+      const file = fileInput.files[0];
+      if (!file) return alert("ファイルを選んでください");
 
-    const formData = new FormData();
-    formData.append("file", file);
+      const formData = new FormData();
+      formData.append("file", file);
 
-    const res = await fetch("/upload", {
-      method: "POST",
-      body: formData
-    });
-
-    if (res.ok) {
-      document.getElementById("fileInput").value = "";  // 初期化
-      loadMessages();  // チャット更新
-    } else {
-      alert("アップロード失敗");
-    }
-    }
-    document.getElementById("settingsBtn").onclick = () => {
-      // モーダルを開く
-      document.getElementById("settingsModal").style.display = "block";
-
-      // 入力欄に現在の情報を入れる
-      document.getElementById("displayNameInput").value = currentUser.name;
-      // ファイル入力は空のまま（セット不可）
-      document.getElementById("iconInput").value = ""; // 何もしなくても空
-
-      // アイコンプレビューは更新
-      document.getElementById("currentIconPreview").src = currentUser.iconUrl;
-
-    };
-
-    document.getElementById("closeSettings").onclick = () => {
-      document.getElementById("settingsModal").style.display = "none";
-    };
-
-    document.getElementById("saveSettings").onclick = async () => {
-      const newName = document.getElementById("displayNameInput").value;
-      const newIcon = document.getElementById("iconInput").value;
-
-      // クライアント側にも即反映
-      currentUser.name = newName;
-      currentUser.icon = newIcon;
-      location.reload();
-      alert("プロフィールを更新しました");
-      document.getElementById("settingsModal").style.display = "none";
-      // サーバーに送信（POSTなど）
-      await fetch("/api/update-profile", {
+      const res = await fetch("/upload", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newName, icon: newIcon }),
+        body: formData
       });
-    };
+
+      if (res.ok) {
+        document.getElementById("fileInput").value = "";  // 初期化
+        loadMessages();  // チャット更新
+      } else {
+        alert("アップロード失敗");
+      }
+      }
+      document.getElementById("settingsBtn").onclick = () => {
+        // モーダルを開く
+        document.getElementById("settingsModal").style.display = "block";
+
+        // 入力欄に現在の情報を入れる
+        document.getElementById("displayNameInput").value = currentUser.name;
+        // ファイル入力は空のまま（セット不可）
+        document.getElementById("iconInput").value = ""; // 何もしなくても空
+
+        // アイコンプレビューは更新
+        document.getElementById("currentIconPreview").src = currentUser.iconUrl;
+
+      };
+
+      document.getElementById("closeSettings").onclick = () => {
+        document.getElementById("settingsModal").style.display = "none";
+      };
+
+      document.getElementById("saveSettings").onclick = async () => {
+        const newName = document.getElementById("displayNameInput").value;
+        const newIcon = document.getElementById("iconInput").value;
+
+        // クライアント側にも即反映
+        currentUser.name = newName;
+        currentUser.icon = newIcon;
+        userName = newName;
+        location.reload();
+        alert("プロフィールを更新しました");
+        document.getElementById("settingsModal").style.display = "none";
+        // サーバーに送信（POSTなど）
+        await fetch("/api/update-profile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: newName, icon: newIcon }),
+        });
+      };
 
 
-    setInterval(loadMessages, 1000);
-    loadMessages();
+      setInterval(loadMessages, 1000);
+      loadMessages();
 
-  </script>
-</body>
+    </script>
+  </body>
 </html>
 

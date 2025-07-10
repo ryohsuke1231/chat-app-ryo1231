@@ -37,6 +37,7 @@ def init_db():
             icon_filename TEXT DEFAULT NULL
         )''')
         conn.execute('''CREATE TABLE IF NOT EXISTS messages (
+            id PRIMARY KEY,
             name TEXT,
             text TEXT,
             time TEXT,
@@ -191,15 +192,15 @@ def upload():
     filename = file.filename
     save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(save_path)
-
+    id = str(uuid.uuid4())
     now = datetime.now().strftime("%H:%M")
     email = session['user']
     with sqlite3.connect("chat.db") as conn:
         cur = conn.execute("SELECT display_name FROM users WHERE email=?", (email,))
         row = cur.fetchone()
         name = row[0] if row else "Unknown"
-        conn.execute("INSERT INTO messages (name, text, time, read, email) VALUES (?, ?, ?, ?, ?)",
-                     (name, f"[ファイル] {filename}", now, 0, email))
+        conn.execute("INSERT INTO messages (id, name, text, time, read, email) VALUES (?, ?, ?, ?, ?, ?)",
+                     (id, name, f"[ファイル] {filename}", now, 0, email))
 
     return "Uploaded", 200
 
@@ -227,14 +228,15 @@ def chat():
         members = [{"name": r[0], "icon": r[1]} for r in cur.fetchall()]
 
         # メッセージ取得（名前だけでなく送信者のアイコンも含める場合はクエリ変更が必要）
-        cur = conn.execute("SELECT name, text, time, read, email FROM messages")
+        cur = conn.execute("SELECT id, name, text, time, read, email FROM messages")
         messages = []
-        for name, text, time_, read, email_ in cur.fetchall():
+        for id, name, text, time_, read, email_ in cur.fetchall():
             # 送信者のアイコン取得
             cur_icon = conn.execute("SELECT icon_filename FROM users WHERE email=?", (email_,))
             icon_row = cur_icon.fetchone()
             icon = icon_row[0] if icon_row and icon_row[0] else None
             messages.append({
+                "id": id,
                 "name": name,
                 "text": text,
                 "time": time_,
@@ -280,6 +282,7 @@ def update_profile():
     #return jsonify({"status": "ok"})
     #return render_template('chat.html', user=name, user_icon=icon, messages=[], email=session['user'], members=[])
     print("redirect to login")
+    session.clear()  # セッションをクリアしてログアウト状態にする
     return redirect(url_for('login'))
 
 
@@ -299,11 +302,12 @@ def send_message():
 
     name = row[0] if row else "Unknown"
     text = data.get("text", "")
+    random_id = str(uuid.uuid4())
 
     with sqlite3.connect("chat.db") as conn:
         #conn.execute("ALTER TABLE messages ADD COLUMN email TEXT")  # 初回だけ実行すればOK
-        conn.execute("INSERT INTO messages (name, text, time, read, email) VALUES (?, ?, ?, ?, ?)",
-                     (name, text, now, 0, email))
+        conn.execute("INSERT INTO messages (id, name, text, time, read, email) VALUES (?, ?, ?, ?, ?, ?)",
+                     (random_id, name, text, now, 0, email))
 
     return jsonify({"status": "ok"})
 
@@ -311,15 +315,16 @@ def send_message():
 @app.route('/messages')
 def get_messages():
     with sqlite3.connect("chat.db") as conn:
-        cur = conn.execute("SELECT name, text, time, read, email FROM messages")
+        cur = conn.execute("SELECT id, name, text, time, read, email FROM messages")
         rows = cur.fetchall()
 
         messages = []
-        for name, text, time_, read, email in rows:
+        for id, name, text, time_, read, email in rows:
             cur_icon = conn.execute("SELECT icon_filename FROM users WHERE email=?", (email,))
             icon_row = cur_icon.fetchone()
             icon = icon_row[0] if icon_row and icon_row[0] else None
             messages.append({
+                "id": id,
                 "name": name,
                 "text": text,
                 "time": time_,
