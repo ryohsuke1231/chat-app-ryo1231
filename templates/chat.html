@@ -256,7 +256,7 @@
       <input type="text" id="displayNameInput">
     </label><br><br>
     <label>現在のアイコン:</label><br>
-    <img id="currentIconPreview" src="" alt="現在のアイコン" height="64"><br><br>
+    <img id="currentIconPreview" src="/static/default.jpeg" alt="現在のアイコン" height="64"><br><br>
     <label for="icon">アイコン画像 (任意):</label><br>
     <input type="file" name="icon" accept="image/*" id="iconInput"><br><br>
     <button id="logout">ログアウト</button>
@@ -272,8 +272,8 @@
     userEmail = "{{ email }}";
     currentUser = {
       name: userName,
-      icon: "{{ icon }}",
-      iconUrl: "{{ url_for('serve_icon', filename=icon) }} if icon else url_for('static', filename='default.jpeg') }}"
+      icon: "{{ user_icon }}",
+      iconUrl: "{{ url_for('serve_icon', filename=user_icon) }} if user_icon else url_for('static', filename='default.jpeg') }}"
     };
 
     let latestMessageId = 0;
@@ -388,6 +388,10 @@
         const formData = new FormData();
         formData.append("name", document.getElementById("newName").value);
         formData.append("icon", document.getElementById("newIcon").files[0]);
+
+        userName = formData.get("name") || userName;  // 新しい名前が空なら元の名前を使う
+        currentUser.name = userName;  // 更新
+        currentUser.icon = formData.get("icon") ? formData.get("icon").name : currentUser.icon;  // 新しいアイコンがあれば更新
 
         fetch("/api/update-profile", {
           method: "POST",
