@@ -35,7 +35,8 @@
 
     #main {
       flex: 3;
-      padding: 20px;
+      /*padding: 0;*/
+      height: 100%;
       background: white;
       display: flex;
       flex-direction: column;
@@ -45,9 +46,58 @@
       flex: 1;
       border: 1px solid #ccc;
       padding: 10px;
-      overflow-y: scroll;
-      margin-bottom: 10px;
+      overflow-y: auto;
+      margin-bottom: 0;
+      margin: 0 20px 0 20px;
       background-color: #ecf0f1;
+    }
+
+    #inputArea {
+      display: flex;
+      padding: 10px 20px;
+      background-color: #fdfdfd;
+      border-top: 1px solid #ccc;
+      margin: 0 20px 20px 20px;
+      gap: 10px;
+      align-items: center;
+      position: sticky;
+      bottom: 0;
+      z-index: 100;
+      padding: 12px 20px;
+    }
+    #inputArea input[type="text"] {
+      flex: 1;
+      padding: 10px 20px;
+      border: 1px solid #ccc;
+      border-radius: 20px;
+      font-size: 1em;
+      background-color: #f9f9f9;
+      transition: border-color 0.2s;
+      outline: none;
+    }
+    #inputArea input[type="text"]:focus {
+      border-color: #74b9ff;
+      background-color: #fff;
+    }
+    #inputArea button, .file-btn {
+      padding: 8px 12px;
+      border: none;
+      border-radius: 20px;
+      background-color: #0984e3;
+      color: white;
+      cursor: pointer;
+      font-size: 1em;
+      transition: background-color 0.2s;
+    }
+    #inputArea button:hover, .file-btn:hover {
+      background-color: #74b9ff;
+    }
+    .file-btn {
+      background-color: #dfe6e9;
+      color: #2d3436;
+      align-items: center;
+      justify-content: center;
+      display: flex;
     }
 
     .msg {
@@ -174,13 +224,17 @@
   <div id="container">
     <div id="main">
       <div id="chat"></div>
-      <div>
-        <input id="text" placeholder="メッセージ" style="width:60%;">
-        <button onclick="send()">送信</button>
-        <input type="file" id="fileInput">
-        <button onclick="uploadFile()">ファイル送信</button>
+
+      <!-- 送信エリア -->
+      <div id="inputArea">
+        <input id="text" placeholder="メッセージを入力..." />
+        <label for="fileInput" class="file-btn">ファイルを追加</label>
+        <input type="file" id="fileInput" style="display: none;" />
+        <button id="sendBtn" onclick="send()">送信</button>
+        <button id="fileSendBtn" onclick="uploadFile()">ファイル送信</button>
       </div>
     </div>
+  </div>
 
     <div id="sidebar">
       <h3>メンバー</h3>
