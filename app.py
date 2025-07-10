@@ -259,32 +259,22 @@ def update_profile():
     if not uid:
         return jsonify({"error": "ログインしていません"}), 401
 
-    data = request.get_json()
-    name = data["name"]
+    name = request.form.get("name")  # ← JSONではなくformから取得
     icon = request.files.get("icon")
     print(f"Updating profile for UID {uid}: name={name}, icon={icon}")
 
     with sqlite3.connect("chat.db") as db:
         if icon:
-            # アイコンの保存
             ext = os.path.splitext(icon.filename)[1]
             filename = f"{uuid.uuid4().hex}{ext}"
-            #icon_path = os.path.join(app.config['ICON_FOLDER'], icon)
-            #if not os.path.exists(icon_path):
-            #    return jsonify({"error": "アイコンファイルが見つかりません"}), 404
-
             save_path = os.path.join(app.config['ICON_FOLDER'], filename)
             icon.save(save_path)
             db.execute("UPDATE users SET display_name=?, icon_filename=? WHERE id=?", (name, filename, uid))
-        #db.commit()
+        else:
+            db.execute("UPDATE users SET display_name=? WHERE id=?", (name, uid))
 
-
-    #return jsonify({"status": "ok"})
-    #return render_template('chat.html', user=name, user_icon=icon, messages=[], email=session['user'], members=[])
-    print("redirect to login")
-    session.clear()  # セッションをクリアしてログアウト状態にする
+    session.clear()
     return redirect(url_for('login'))
-
 
 # メッセージ送信
 @app.route('/send', methods=['POST'])

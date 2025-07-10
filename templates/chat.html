@@ -385,22 +385,25 @@
       };
 
       document.getElementById("saveSettings").onclick = async () => {
-        const newName = document.getElementById("displayNameInput").value;
-        const newIcon = document.getElementById("iconInput").value;
+        const formData = new FormData();
+        formData.append("name", document.getElementById("newName").value);
+        formData.append("icon", document.getElementById("newIcon").files[0]);
 
-        // クライアント側にも即反映
-        currentUser.name = newName;
-        currentUser.icon = newIcon;
-        userName = newName;
-        location.reload();
-        alert("プロフィールを更新しました");
-        document.getElementById("settingsModal").style.display = "none";
-        // サーバーに送信（POSTなど）
-        await fetch("/api/update-profile", {
+        fetch("/api/update-profile", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: newName, icon: newIcon }),
+          body: formData
+        }).then(res => {
+          if (res.redirected) {
+            window.location.href = res.url;
+          } else {
+            alert("プロフィールを更新できませんでした。");
+          }
+        }).catch(err => {
+          console.error("Error updating profile:", err);
+          alert("プロフィールの更新中にエラーが発生しました。");
         });
+        document.getElementById("settingsModal").style.display = "none";
+
       };
 
 
