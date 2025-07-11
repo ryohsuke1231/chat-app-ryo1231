@@ -381,7 +381,7 @@
         alert("アップロード失敗");
       }
       }
-      document.getElementById("settingsBtn").onclick = () => {
+      document.getElementById("settingsBtn").onclick = async () => {
         // モーダルを開く
         document.getElementById("settingsModal").style.display = "block";
         // 現在のユーザー情報を取得
@@ -390,7 +390,7 @@
           alert("ユーザー情報の取得に失敗しました。");
           return;
         }
-        const user = res.json();
+        const user = await res.json();
 
 
         // 入力欄に現在の情報を入れる
