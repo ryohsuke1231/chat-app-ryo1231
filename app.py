@@ -162,6 +162,7 @@ def serve_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 
+# チャット画面
 @app.route('/chat')
 def chat():
     if 'user' not in session:
@@ -169,11 +170,38 @@ def chat():
 
     email = session['user']
     with sqlite3.connect("chat.db") as conn:
+        # ユーザー情報（表示名＋アイコン）を取得
         cur = conn.execute("SELECT display_name, icon_filename, icon_is_default FROM users WHERE email=?", (email,))
-        user = cur.fetchone()
+        row = cur.fetchone()
+        display_name = row[0] if row else "Unknown"
+        user_icon = row[1] if row and row[1] else None
+        user_icon_is_default = row[2] if row else 1
 
-    return render_template('chat.html', user_email=email, display_name=user[0], icon_filename=user[1], icon_is_default=user[2])
+        # 全ユーザーの名前とアイコンを取得（メンバーリスト用）
+        cur = conn.execute("SELECT display_name, icon_filename, icon_is_default FROM users")
+        members = [{"name": r[0], "icon": r[1], "icon_is_default": r[2]} for r in cur.fetchall()]
 
+        # メッセージ取得（名前だけでなく送信者のアイコンも含める場合はクエリ変更が必要）
+        cur = conn.execute("SELECT id, name, text, time, read, email FROM messages")
+        messages = []
+        for id, name, text, time_, read, email_ in cur.fetchall():
+            # 送信者のアイコン取得
+            cur_icon = conn.execute("SELECT icon_filename, icon_is_default FROM users WHERE email=?", (email_,))
+            icon_row = cur_icon.fetchone()
+            icon = icon_row[0] if icon_row and icon_row[0] else None
+            messages.append({
+                "id": id,
+                "name": name,
+                "text": text,
+                "time": time_,
+                "read": read,
+                "email": email_,
+                "icon": icon,
+                "icon_is_default": icon_row[1] if icon_row else 1
+            })
+            print(f"Message from {name}: {text} at {time_}, read: {read}, email: {email_}, icon: {icon}, icon_is_default: {icon_row[1] if icon_row else 1}")
+
+    return render_template('chat.html', user=display_name, user_icon=user_icon, user_icon_is_default=user_icon_is_default, messages=messages, email=email, members=members)
 
 #アイコン取得
 @app.route('/icons/<filename>')
@@ -184,6 +212,7 @@ def serve_icon(filename):
 def update_profile():
     if 'user' not in session:
         return "Unauthorized", 403
+    print("Updating profile...")
 
     email = session['user']
     new_name = request.form.get('display_name')
@@ -226,7 +255,7 @@ def update_profile():
         if new_name:
             conn.execute("UPDATE messages SET name=? WHERE email=?", (new_name, email))
 
-    
+    print("update profile successfully")
     return jsonify({"success": True})
 
 # === メッセージ送信 ===
