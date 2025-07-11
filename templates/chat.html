@@ -365,6 +365,7 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: user.name, text })
       });
+      sendMessageToPython("メッセージ送信: " + text);
 
       document.getElementById("text").value = "";
       loadMessages();
