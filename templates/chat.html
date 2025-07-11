@@ -337,19 +337,21 @@
         bubble.style.clear = "both";
         bubble.style.position = "relative";
     
-      if (msg.id > latestMessageId) {
-        latestMessageId = msg.id;
-      }
-    chat.appendChild(bubble);
-  });
+        if (msg.id > latestMessageId) {
+          latestMessageId = msg.id;
+        }
+        chat.appendChild(bubble);
+      });
 
-  if (shouldScroll) {
-    chat.scrollTop = chat.scrollHeight;
-  }
+      if (shouldScroll) {
+        chat.scrollTop = chat.scrollHeight;
+      }
     }
 
     async function send() {
       const text = document.getElementById("text").value;
+      sendMessageToPython("メッセージ送信: " + text);
+      if (!text) return alert("メッセージを入力してください");
       if (!text.trim()) return;
       if (text.length > 1000) return alert("メッセージは1000文字以内で入力してください");
       const res = await fetch("api/user-info");
@@ -365,7 +367,7 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: user.name, text })
       });
-      sendMessageToPython("メッセージ送信: " + text);
+      //sendMessageToPython("メッセージ送信: " + text);
 
       document.getElementById("text").value = "";
       loadMessages();
