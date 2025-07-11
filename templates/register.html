@@ -124,23 +124,24 @@
   {% endif %}
   <script>
   document.querySelectorAll('input[type="password"]').forEach(input => {
-    let timeoutId;
+  let timeoutId;
 
-    input.addEventListener('input', (e) => {
-      const el = e.target;
+  input.addEventListener('keydown', (e) => {
+    const el = e.target;
 
-      // まずtypeをtextに変えて、直近の入力文字を見えるようにする
-      el.type = 'text';
+    // タイマークリア
+    if (timeoutId) clearTimeout(timeoutId);
 
-      // 既にタイマーがあればクリア
-      if (timeoutId) clearTimeout(timeoutId);
+    // typeをtextに切り替え
+    el.type = 'text';
 
-      // 1秒後にtypeをpasswordに戻す
-      timeoutId = setTimeout(() => {
-        el.type = 'password';
-      }, 1000);
-    });
+    // 1秒後にtypeをpasswordに戻す
+    timeoutId = setTimeout(() => {
+      el.type = 'password';
+    }, 1000);
   });
+});
+
 </script>
 
 
