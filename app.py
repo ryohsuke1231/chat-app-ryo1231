@@ -355,6 +355,7 @@ def logout():
 
 @app.route("/api/user-info")
 def user_info():
+    print("Fetching user info...")
     uid = session.get("uid")
     if not uid:
         return jsonify({"error": "未ログイン"}), 401
@@ -363,8 +364,9 @@ def user_info():
         db.row_factory = sqlite3.Row
         user = db.execute("SELECT display_name, icon_filename, icon_is_default, email FROM users WHERE id = ?", (uid,)).fetchone()
         if not user:
+            print("User not found")
             return jsonify({"error": "ユーザーが見つかりません"}), 404
-
+        print(f"User info fetched: {user['display_name']}, icon: {user['icon_filename']}, email: {user['email']}, is_default: {user['icon_is_default']}")
         return jsonify({
             "name": user["display_name"],
             "iconUrl": (

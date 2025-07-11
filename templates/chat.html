@@ -351,11 +351,19 @@
     async function send() {
       const text = document.getElementById("text").value;
       if (!text.trim()) return;
+      if (text.length > 1000) return alert("メッセージは1000文字以内で入力してください");
+      const res = await fetch("api/user-info");
+        if(!res.ok) {
+          alert("ユーザー情報の取得に失敗しました。");
+          sendMessageToPython("ユーザー情報取得失敗");
+          return;
+        }
+        const user = await res.json();
 
       await fetch("/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: userName, text })
+        body: JSON.stringify({ name: user.name, text })
       });
 
       document.getElementById("text").value = "";
@@ -385,9 +393,10 @@
         // モーダルを開く
         document.getElementById("settingsModal").style.display = "block";
         // 現在のユーザー情報を取得
-        const res = fetch("api/user-info");
+        const res = await fetch("api/user-info");
         if(!res.ok) {
           alert("ユーザー情報の取得に失敗しました。");
+          sendMessageToPython("ユーザー情報取得失敗");
           return;
         }
         const user = await res.json();
