@@ -265,9 +265,10 @@ def send_message():
     if 'user' not in session:
         return "Unauthorized", 403
 
-    text = request.form.get('text')
+    data = request.get_json()  # ← ここを修正！
+    text = data.get('text')   # ← JSON形式で受け取る
+    name = data.get('name')   # ← 名前もクライアントから受け取る
     email = session['user']
-
     with sqlite3.connect("chat.db") as conn:
         cur = conn.execute("SELECT display_name FROM users WHERE email=?", (email,))
         row = cur.fetchone()
