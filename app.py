@@ -96,23 +96,24 @@ def register():
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')
         display_name = request.form.get('display_name')
         icon = request.files.get('icon')
-        # 必須チェック
+
         if not email or not password or not display_name:
-            return "すべての項目（メール、名前、パスワード）を入力してください。", 400
+            return render_template('register.html', error="すべての項目を入力してください。")
+
+        if password != confirm_password:
+            return render_template('register.html', error="パスワードが一致しません。")
 
         if not icon:
-            icon = 'static/default.jpeg'  # デフォルトアイコンのパス
-            filename = ''
+            filename = ""
         else:
-        # ファイルの保存
             ext = os.path.splitext(icon.filename)[1]
             filename = f"{uuid.uuid4().hex}{ext}"
             save_path = os.path.join(app.config['ICON_FOLDER'], filename)
             icon.save(save_path)
 
-        # パスワードハッシュ化
         hashed_password = generate_password_hash(password)
 
         with sqlite3.connect("chat.db") as conn:
@@ -120,7 +121,7 @@ def register():
                 conn.execute("INSERT INTO users (email, display_name, password, icon_filename) VALUES (?, ?, ?, ?)",
                              (email, display_name, hashed_password, filename))
             except sqlite3.IntegrityError:
-                return "このメールアドレスは既に登録されています。", 400
+                return render_template('register.html', error="このメールアドレスは既に登録されています。")
 
         session['user'] = email
         return redirect(url_for('chat'))
@@ -259,13 +260,13 @@ def chat():
 def serve_icon(filename):
     return send_from_directory(app.config['ICON_FOLDER'], filename)
 
-@app.route("/api/update-profile", methods=["POST"])
+@app.route('/api/update-profile', methods=['POST'])
 def update_profile():
     print("¥n¥n¥n¥nUpdating profile...")
     uid = session.get("uid")
     if not uid:
         print("¥nUser not logged in")
-        return jsonify({"error": "ログインしていません"}), 401
+        return jsonify({"success": False, "error": "ログインしていません"}), 401
 
     name = request.form.get("name")  # ← JSONではなくformから取得
     icon = request.files.get("icon")

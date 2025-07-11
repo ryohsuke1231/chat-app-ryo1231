@@ -254,27 +254,33 @@
     <h3>プロフィール設定</h3>
     <label>表示名:<br>
       <input type="text" id="displayNameInput">
+    <label>メールアドレス:<br>
+      <input type="text" id="emailInput" value="{{ email }}">
+    <label>パスワード<br>
+      <input type="password" id="passwordInput" placeholder="新しいパスワードを入力">
     </label><br><br>
     <label>現在のアイコン:</label><br>
     <img id="currentIconPreview" src="/static/default.jpeg" alt="現在のアイコン" height="64"><br><br>
-    <label for="icon">アイコン画像 (任意):</label><br>
+    <label for="icon">アイコン画像 (指定しない場合は今のアイコンが使用されます):</label><br>
     <input type="file" name="icon" accept="image/*" id="iconInput"><br><br>
-    <button id="logout">ログアウト</button>
-    <button id="saveSettings">保存</button>
-    <button id="closeSettings">キャンセル</button>
+    <button id="logout" type="button">ログアウト</button>
+    <button id="saveSettings" type="button">保存</button>
+    <button id="closeSettings" type="button">キャンセル</button>
   </div>
 
   <!-- JavaScript は元のままでOK -->
   <script>
     // ここにJSコードを入れる（元のコードをそのまま使える）
-    userName = "{{ user }}";
+    async function update_info() {
+      userName = "{{ user }}";
     
-    userEmail = "{{ email }}";
-    currentUser = {
-      name: userName,
-      icon: "{{ user_icon }}",
-      iconUrl: "{{ url_for('serve_icon', filename=user_icon) }} if user_icon else url_for('static', filename='default.jpeg') }}"
-    };
+      userEmail = "{{ email }}";
+      currentUser = {
+        name: userName,
+        icon: "{{ user_icon }}",
+        iconUrl: "{{ url_for('serve_icon', filename=user_icon) }} if user_icon else url_for('static', filename='default.jpeg') }}"
+      };
+    }
 
     let latestMessageId = 0;
     async function loadMessages() {
@@ -403,19 +409,20 @@
         if (newIcon instanceof File && newIcon.name) {
           currentUser.icon = newIcon.name;
         }
+        alert(`プロフィール更新中：${userName}, アイコン: ${currentUser.icon || "なし"}`);
 
         try {
           const res = await fetch("/api/update-profile", {
             method: "POST",
             body: formData
           });
-        const result = await res.json();
-        if (result.success) {
-          window.location.href = "/chat";
+          const result = await res.json();
+          if (result.success) {
+            window.location.href = "/chat";
           
-        } else {
+          } else {
           alert("プロフィールを更新できませんでした。");
-        }
+          }
         } catch (err) {
           console.error("Error updating profile:", err);
           alert("プロフィールの更新中にエラーが発生しました。");
