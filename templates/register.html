@@ -46,7 +46,6 @@
 
     .register-box input[type="text"],
     .register-box input[type="email"],
-    .register-box input[type="password"],
     .register-box input[type="file"] {
       width: 100%;
       padding: 12px;
@@ -107,8 +106,17 @@
     <form method="POST" enctype="multipart/form-data">
       <input type="text" name="display_name" placeholder="表示名" required>
       <input type="email" name="email" placeholder="メールアドレス" required>
-      <input type="password" name="password" placeholder="パスワードを作成" required>
-      <input type="password" name="confirm_password" placeholder="パスワードを確認" required>
+
+      <!-- 表示用パスワード欄 -->
+      <input id="password_display" type="text" placeholder="パスワードを作成" autocomplete="off">
+      <!-- 実際に送信されるパスワード -->
+      <input id="password_real" name="password" type="password" style="display:none;" required>
+
+      <!-- 表示用確認欄 -->
+      <input id="confirm_display" type="text" placeholder="パスワードを確認" autocomplete="off">
+      <!-- 実際に送信される確認 -->
+      <input id="confirm_real" name="confirm_password" type="password" style="display:none;" required>
+
       <label for="icon">アイコン画像 (任意):</label>
       <small>※アップロードしない場合はデフォルトのアイコンが使用されます</small>
       <input type="file" name="icon" accept="image/*">
@@ -117,36 +125,52 @@
     </form>
     <a href="{{ url_for('login') }}">ログイン画面へ</a>
   </div>
+
   {% if error %}
     <div class="error-popup">
       {{ error }}
     </div>
   {% endif %}
+
   <script>
-  document.querySelectorAll('input[type="password"]').forEach(input => {
-    let timeoutId;
+    function setupMaskedInput(displayId, realId) {
+      const displayInput = document.getElementById(displayId);
+      const realInput = document.getElementById(realId);
+      let timeoutId;
 
-    // 入力時：一瞬だけ見えるように
-    input.addEventListener('input', (e) => {
-      const el = e.target;
+      displayInput.addEventListener('input', () => {
+        const newText = displayInput.value;
+        const oldText = realInput.value;
 
-      // すぐに見えるようにする
-      el.type = 'text';
+        if (newText.length > oldText.length) {
+          // 追加された文字だけ加える
+          const addedChar = newText.slice(-1);
+          realInput.value += addedChar;
+        } else {
+          // 削除された場合
+          realInput.value = realInput.value.slice(0, newText.length);
+        }
 
-      // タイマーをリセットして、1秒後に戻す
-      if (timeoutId) clearTimeout(timeoutId);
+        // マスク表示：最後の1文字だけ表示
+        const masked = '●'.repeat(realInput.value.length - 1) + (realInput.value.slice(-1) || '');
+        displayInput.value = masked;
 
-      timeoutId = setTimeout(() => {
-        el.type = 'password';
-      }, 1000);
-    });
+        if (timeoutId) clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+          displayInput.value = '●'.repeat(realInput.value.length);
+        }, 1000);
+      });
 
-    // フォーカスが外れたら、必ず password に戻す（←これ重要！）
-    input.addEventListener('blur', () => {
-      input.type = 'password';
-      if (timeoutId) clearTimeout(timeoutId);
-    });
-  });
-</script>
+      // フォーカス外れたときは完全にマスク
+      displayInput.addEventListener('blur', () => {
+        displayInput.value = '●'.repeat(realInput.value.length);
+        if (timeoutId) clearTimeout(timeoutId);
+      });
+    }
+
+    // パスワード入力欄をマスク設定
+    setupMaskedInput('password_display', 'password_real');
+    setupMaskedInput('confirm_display', 'confirm_real');
+  </script>
 </body>
 </html>
