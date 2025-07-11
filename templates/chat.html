@@ -288,6 +288,20 @@
 
     let latestMessageId = 0;
     async function loadMessages() {
+      const res2 = await fetch("/api/user-info");
+      if (!res2.ok) {
+        alert("ユーザー情報の取得に失敗しました。");
+        sendMessageToPython("ユーザー情報取得失敗");
+        return;
+      }
+      const user = await res.json();
+      userName = user.name;
+      userEmail = user.email;
+      currentUser = {
+        name: userName,
+        icon: user.icon,
+        iconUrl: user.icon ? `/icons/${user.icon}` : '/static/default.jpeg',
+      };
       const res = await fetch("/messages");
       const data = await res.json();
       const chat = document.getElementById("chat");
