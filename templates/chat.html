@@ -294,7 +294,7 @@
         sendMessageToPython("ユーザー情報取得失敗");
         return;
       }
-      const user = await res.json();
+      const user = await res2.json();
       userName = user.name;
       userEmail = user.email;
       currentUser = {
@@ -313,7 +313,7 @@
         const isMine = msg.email === userEmail;
         const side = isMine ? "right" : "left";
         const bubble = document.createElement("div");
-        bubble.className = `msg ${side}`;
+        //bubble.className = `msg ${side}`;
 
         // アイコン画像のURLを作る（ファイルが存在しない場合はデフォルトにするなど応用可）
         //const iconUrl = /icons/${msg.icon || 'default.jpeg'};
