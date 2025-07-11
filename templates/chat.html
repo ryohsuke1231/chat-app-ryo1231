@@ -408,12 +408,12 @@
             method: "POST",
             body: formData
           });
-
-          if (res.redirected) {
-            window.location.href = res.url;
-          } else {
-            alert("プロフィールを更新できませんでした。");
-          }
+        const result = await res.json();
+        if (result.success) {
+          window.location.href = "/chat";
+        } else {
+          alert("プロフィールを更新できませんでした。");
+        }
         } catch (err) {
           console.error("Error updating profile:", err);
           alert("プロフィールの更新中にエラーが発生しました。");

@@ -274,8 +274,11 @@ def update_profile():
         else:
             db.execute("UPDATE users SET display_name=? WHERE id=?", (name, uid))
 
-    session.clear()
-    return redirect('login')
+    #session.clear()
+    session['name'] = name  # セッションに名前を保存
+    session['icon'] = filename if icon else session.get('icon', None)  # アイコンがない場合は既存のアイコンを保持
+    #return redirect('/login')
+    return jsonify({"success": True})
 
 # メッセージ送信
 @app.route('/send', methods=['POST'])
