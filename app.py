@@ -21,6 +21,11 @@ ICON_FOLDER = 'icons'
 os.makedirs(ICON_FOLDER, exist_ok=True)
 app.config['ICON_FOLDER'] = ICON_FOLDER
 
+@app.before_request
+def log_request():
+    print(f"[リクエスト] {request.method} {request.path}")
+
+
 # SQLite 初期化（1つのDBに統合）
 def init_db():
     with sqlite3.connect("chat.db") as conn:
