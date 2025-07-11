@@ -122,6 +122,27 @@
       {{ error }}
     </div>
   {% endif %}
+  <script>
+  document.querySelectorAll('input[type="password"]').forEach(input => {
+    let timeoutId;
+
+    input.addEventListener('input', (e) => {
+      const el = e.target;
+
+      // まずtypeをtextに変えて、直近の入力文字を見えるようにする
+      el.type = 'text';
+
+      // 既にタイマーがあればクリア
+      if (timeoutId) clearTimeout(timeoutId);
+
+      // 1秒後にtypeをpasswordに戻す
+      timeoutId = setTimeout(() => {
+        el.type = 'password';
+      }, 1000);
+    });
+  });
+</script>
+
 
 </body>
 </html>

@@ -87,4 +87,25 @@
     </form>
     <a href="{{ url_for('register') }}">アカウント新規作成</a>
   </div>
+  <script>
+  document.querySelectorAll('input[type="password"]').forEach(input => {
+    let timeoutId;
+
+    input.addEventListener('input', (e) => {
+      const el = e.target;
+
+      // まずtypeをtextに変えて、直近の入力文字を見えるようにする
+      el.type = 'text';
+
+      // 既にタイマーがあればクリア
+      if (timeoutId) clearTimeout(timeoutId);
+
+      // 1秒後にtypeをpasswordに戻す
+      timeoutId = setTimeout(() => {
+        el.type = 'password';
+      }, 1000);
+    });
+  });
+</script>
+
 </body>
