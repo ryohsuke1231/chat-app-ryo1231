@@ -252,7 +252,7 @@ def send_message():
     return jsonify({"status": "ok", "message": text, "time": now})
 
 # === メッセージ取得 ===
-@app.route('/get_messages')
+@app.route('/messages')
 def get_messages():
     if 'user' not in session:
         return "Unauthorized", 403
