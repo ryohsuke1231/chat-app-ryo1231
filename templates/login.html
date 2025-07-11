@@ -89,24 +89,28 @@
   </div>
   <script>
   document.querySelectorAll('input[type="password"]').forEach(input => {
-  let timeoutId;
+    let timeoutId;
 
-  input.addEventListener('keydown', (e) => {
-    const el = e.target;
+    // 入力時：一瞬だけ見えるように
+    input.addEventListener('input', (e) => {
+      const el = e.target;
 
-    // タイマークリア
-    if (timeoutId) clearTimeout(timeoutId);
+      // すぐに見えるようにする
+      el.type = 'text';
 
-    // typeをtextに切り替え
-    el.type = 'text';
+      // タイマーをリセットして、1秒後に戻す
+      if (timeoutId) clearTimeout(timeoutId);
 
-    // 1秒後にtypeをpasswordに戻す
-    timeoutId = setTimeout(() => {
-      el.type = 'password';
-    }, 1000);
+      timeoutId = setTimeout(() => {
+        el.type = 'password';
+      }, 1000);
+    });
+
+    // フォーカスが外れたら、必ず password に戻す（←これ重要！）
+    input.addEventListener('blur', () => {
+      input.type = 'password';
+      if (timeoutId) clearTimeout(timeoutId);
+    });
   });
-});
-
 </script>
-
 </body>
