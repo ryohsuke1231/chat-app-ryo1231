@@ -297,7 +297,9 @@ def update_profile():
 # メッセージ送信
 @app.route('/send', methods=['POST'])
 def send_message():
+    print("sending message...")
     if 'user' not in session:
+        print("User not logged in")
         return jsonify({"error": "未ログイン"}), 403
 
     data = request.get_json()
@@ -317,6 +319,7 @@ def send_message():
         conn.execute("INSERT INTO messages (name, text, time, read, email) VALUES (?, ?, ?, ?, ?)",
                      (name, text, now, 0, email))
 
+    print(f"Message sent successfully by {name}: {text} at {now}, email: {email}")
     return jsonify({"status": "ok"})
 
 #メッセージ読み込み
@@ -373,6 +376,13 @@ def user_info():
             "icon_is_default": user["icon_is_default"]
         })
 
+@app.route("/send_debug", methods=["POST"])
+def receive_message():
+    data = request.get_json()
+    text = data.get("text")
+
+    print(f"[受信メッセージ] {text}")  # ← ターミナルに出る
+    return jsonify({"status": "ok"})
 
 if __name__ == '__main__':
     app.run(debug=True)

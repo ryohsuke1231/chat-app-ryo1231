@@ -411,6 +411,7 @@
 
       document.getElementById("saveSettings").onclick = async () => {
         alert("プロフィールを更新します。");
+        sendMessageToPython("profile update");
         const formData = new FormData();
         formData.append("name", document.getElementById("newName").value);
 
@@ -429,6 +430,7 @@
           currentUser.icon = newIcon.name;
         }
         alert(`プロフィール更新中：${userName}, アイコン: ${currentUser.icon || "なし"}`);
+        sendMessageToPython(`プロフィール更新: ${userName}, アイコン: ${currentUser.icon || "なし"}`);
 
         try {
           const res = await fetch("/api/update-profile", {
@@ -440,16 +442,28 @@
             window.location.href = "/chat";
           
           } else {
-          alert("プロフィールを更新できませんでした。");
+            alert("プロフィールを更新できませんでした。");
+            sendMessageToPython("プロフィール更新失敗");
           }
         } catch (err) {
           console.error("Error updating profile:", err);
           alert("プロフィールの更新中にエラーが発生しました。");
+          sendMessageToPython("プロフィール更新エラー");
         }
 
         document.getElementById("settingsModal").style.display = "none";
       };
+      async function sendMessageToPython(msg) {
+        const message = msg;
 
+        await fetch("/send_debug", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: msg })
+        });
+
+        //document.getElementById("text").value = "";
+      }
 
       setInterval(loadMessages, 1000);
       loadMessages();
