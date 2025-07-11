@@ -21,9 +21,9 @@ ICON_FOLDER = 'icons'
 os.makedirs(ICON_FOLDER, exist_ok=True)
 app.config['ICON_FOLDER'] = ICON_FOLDER
 
-@app.before_request
-def log_request():
-    print(f"[リクエスト] {request.method} {request.path}")
+#@app.before_request
+#def log_request():
+    #print(f"[リクエスト] {request.method} {request.path}")
 
 
 # SQLite 初期化（1つのDBに統合）
@@ -39,6 +39,7 @@ def init_db():
             email TEXT UNIQUE,
             display_name TEXT,
             password TEXT,
+            icon_is_default INTEGER DEFAULT 1,
             icon_filename TEXT DEFAULT NULL
         )''')
         conn.execute('''CREATE TABLE IF NOT EXISTS messages (
@@ -82,10 +83,11 @@ def upload_icon():
     filename = f"{uuid.uuid4().hex}{ext}"
     save_path = os.path.join(app.config['ICON_FOLDER'], filename)
     file.save(save_path)
+    #filename += '/icons/'
 
     email = session['user']
     with sqlite3.connect("chat.db") as conn:
-        conn.execute("UPDATE users SET icon_filename=? WHERE email=?", (filename, email))
+        conn.execute("UPDATE users SET icon_filename=?, icon_is_default=0 WHERE email=?", (filename, email))
 
     return jsonify({"status": "ok", "filename": filename})
 
@@ -118,8 +120,8 @@ def register():
 
         with sqlite3.connect("chat.db") as conn:
             try:
-                conn.execute("INSERT INTO users (email, display_name, password, icon_filename) VALUES (?, ?, ?, ?)",
-                             (email, display_name, hashed_password, filename))
+                conn.execute("INSERT INTO users (email, display_name, password, icon_filename, icon_is_default) VALUES (?, ?, ?, ?, ?)",
+                             (email, display_name, hashed_password, filename, 0))
             except sqlite3.IntegrityError:
                 return render_template('register.html', error="このメールアドレスは既に登録されています。")
 
@@ -225,21 +227,22 @@ def chat():
     email = session['user']
     with sqlite3.connect("chat.db") as conn:
         # ユーザー情報（表示名＋アイコン）を取得
-        cur = conn.execute("SELECT display_name, icon_filename FROM users WHERE email=?", (email,))
+        cur = conn.execute("SELECT display_name, icon_filename, icon_is_default FROM users WHERE email=?", (email,))
         row = cur.fetchone()
         display_name = row[0] if row else "Unknown"
         user_icon = row[1] if row and row[1] else None
+        user_icon_is_default = row[2] if row else 1
 
         # 全ユーザーの名前とアイコンを取得（メンバーリスト用）
-        cur = conn.execute("SELECT display_name, icon_filename FROM users")
-        members = [{"name": r[0], "icon": r[1]} for r in cur.fetchall()]
+        cur = conn.execute("SELECT display_name, icon_filename, icon_is_default FROM users")
+        members = [{"name": r[0], "icon": r[1], "icon_is_default": r[2]} for r in cur.fetchall()]
 
         # メッセージ取得（名前だけでなく送信者のアイコンも含める場合はクエリ変更が必要）
         cur = conn.execute("SELECT id, name, text, time, read, email FROM messages")
         messages = []
         for id, name, text, time_, read, email_ in cur.fetchall():
             # 送信者のアイコン取得
-            cur_icon = conn.execute("SELECT icon_filename FROM users WHERE email=?", (email_,))
+            cur_icon = conn.execute("SELECT icon_filename, icon_is_default FROM users WHERE email=?", (email_,))
             icon_row = cur_icon.fetchone()
             icon = icon_row[0] if icon_row and icon_row[0] else None
             messages.append({
@@ -249,11 +252,12 @@ def chat():
                 "time": time_,
                 "read": read,
                 "email": email_,
-                "icon": icon
+                "icon": icon,
+                "icon_is_default": icon_row[1] if icon_row else 1
             })
-            print(f"Message from {name}: {text} at {time_}, read: {read}, email: {email_}, icon: {icon}")
+            print(f"Message from {name}: {text} at {time_}, read: {read}, email: {email_}, icon: {icon}, icon_is_default: {icon_row[1] if icon_row else 1}")
 
-    return render_template('chat.html', user=display_name, user_icon=user_icon, messages=messages, email=email, members=members)
+    return render_template('chat.html', user=display_name, user_icon=user_icon, user_icon_is_default=user_icon_is_default, messages=messages, email=email, members=members)
 
 #アイコン取得
 @app.route('/icons/<filename>')
@@ -324,7 +328,7 @@ def get_messages():
 
         messages = []
         for id, name, text, time_, read, email in rows:
-            cur_icon = conn.execute("SELECT icon_filename FROM users WHERE email=?", (email,))
+            cur_icon = conn.execute("SELECT icon_filename, icon_is_default FROM users WHERE email=?", (email,))
             icon_row = cur_icon.fetchone()
             icon = icon_row[0] if icon_row and icon_row[0] else None
             messages.append({
@@ -334,7 +338,8 @@ def get_messages():
                 "time": time_,
                 "read": read,
                 "email": email,
-                "icon": icon
+                "icon": icon,
+                "icon_is_default": icon_row[1] if icon_row else 1
             })
 
     return jsonify(messages)
@@ -344,6 +349,30 @@ def get_messages():
 def logout():
     session.pop('user', None)
     return redirect(url_for('login'))
+
+@app.route("/api/user-info")
+def user_info():
+    uid = session.get("uid")
+    if not uid:
+        return jsonify({"error": "未ログイン"}), 401
+
+    with sqlite3.connect("chat.db") as db:
+        db.row_factory = sqlite3.Row
+        user = db.execute("SELECT display_name, icon_filename, icon_is_default, email FROM users WHERE id = ?", (uid,)).fetchone()
+        if not user:
+            return jsonify({"error": "ユーザーが見つかりません"}), 404
+
+        return jsonify({
+            "name": user["display_name"],
+            "iconUrl": (
+                "/static/default.jpeg"
+                if user["icon_is_default"]
+                else f"/icons/{user['icon_filename']}"
+            ),    
+            "email": user["email"],
+            "icon_is_default": user["icon_is_default"]
+        })
+
 
 if __name__ == '__main__':
     app.run(debug=True)
