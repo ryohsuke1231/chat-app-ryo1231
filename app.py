@@ -259,8 +259,9 @@ def update_profile():
     return jsonify({"success": True})
 
 # === メッセージ送信 ===
-@app.route('/send_message', methods=['POST'])
+@app.route('/send', methods=['POST'])
 def send_message():
+    print("¥n¥nSending message...")
     if 'user' not in session:
         return "Unauthorized", 403
 
@@ -277,12 +278,13 @@ def send_message():
             INSERT INTO messages (name, text, time, read, email)
             VALUES (?, ?, ?, 0, ?)
         ''', (name, text, now, email))
-
+    print(f"[送信メッセージ] {text}")  # ← ターミナルに出る
     return jsonify({"status": "ok", "message": text, "time": now})
 
 # === メッセージ取得 ===
 @app.route('/messages')
 def get_messages():
+    print("Fetching messages...")
     if 'user' not in session:
         return "Unauthorized", 403
 
@@ -305,7 +307,7 @@ def get_messages():
                 'icon_filename': row[6],
                 'icon_is_default': row[7],
             })
-
+    print(f"Fetched {len(messages)} messages")
     return jsonify(messages)
 # ログアウト
 @app.route('/logout')

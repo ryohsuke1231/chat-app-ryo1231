@@ -363,7 +363,7 @@
       await fetch("/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: user.name, text })
+        body: JSON.stringify({ name: user.name, text: text })
       });
       //sendMessageToPython("メッセージ送信: " + text);
       if(res.ok){
