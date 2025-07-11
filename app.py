@@ -1,98 +1,60 @@
-from flask import Flask, request, render_template, redirect, url_for, session, jsonify, send_from_directory
-
-#from email.message import EmailMessage
+from flask import (
+    Flask, request, render_template, redirect,
+    url_for, session, jsonify, send_from_directory
+)
 from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
-#import smtplib
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime
 import os
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
 
+# === 設定 ===
+UPLOAD_FOLDER = 'uploads'
+ICON_FOLDER = 'icons'
 TOKEN_EXPIRATION_MINUTES = 10
 
-UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
-ICON_FOLDER = 'icons'
 os.makedirs(ICON_FOLDER, exist_ok=True)
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['ICON_FOLDER'] = ICON_FOLDER
 
-#@app.before_request
-#def log_request():
-    #print(f"[リクエスト] {request.method} {request.path}")
-
-
-# SQLite 初期化（1つのDBに統合）
+# === データベース初期化 ===
 def init_db():
     with sqlite3.connect("chat.db") as conn:
-        conn.execute('''CREATE TABLE IF NOT EXISTS tokens (
-            email TEXT,
-            token TEXT,
-            expires_at TEXT
-        )''')
-        conn.execute('''CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            email TEXT UNIQUE,
-            display_name TEXT,
-            password TEXT,
-            icon_is_default INTEGER DEFAULT 1,
-            icon_filename TEXT DEFAULT NULL
-        )''')
-        conn.execute('''CREATE TABLE IF NOT EXISTS messages (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT,
-            text TEXT,
-            time TEXT,
-            read INTEGER,
-            email TEXT
-        )''')
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS tokens (
+                email TEXT,
+                token TEXT,
+                expires_at TEXT
+            )
+        ''')
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT UNIQUE,
+                display_name TEXT,
+                password TEXT,
+                icon_is_default INTEGER DEFAULT 1,
+                icon_filename TEXT DEFAULT NULL
+            )
+        ''')
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT,
+                text TEXT,
+                time TEXT,
+                read INTEGER,
+                email TEXT
+            )
+        ''')
 init_db()
 
-"""
-# メール送信
-def send_login_email(email, token):
-    from secrets__ import EMAIL_ADDRESS, EMAIL_PASSWORD
-    login_link = f"https://chat-app-by-ryosuke.onrender.com/verify?token={token}"
-
-    msg = EmailMessage()
-    msg["Subject"] = "チャットログイン"
-    msg["From"] = EMAIL_ADDRESS
-    msg["To"] = email
-    msg.set_content(f"ログインリンクはこちら:\n\n{login_link}", charset="utf-8")
-
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
-        smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-        smtp.send_message(msg)
-"""
-
-@app.route('/upload_icon', methods=['POST'])
-def upload_icon():
-    if 'user' not in session:
-        return "Unauthorized", 403
-
-    file = request.files.get('icon')
-    if not file:
-        return "No file", 400
-
-    # ファイル名をユニーク化（例：メールアドレスのハッシュ + 拡張子）
-    ext = os.path.splitext(file.filename)[1]
-    filename = f"{uuid.uuid4().hex}{ext}"
-    save_path = os.path.join(app.config['ICON_FOLDER'], filename)
-    file.save(save_path)
-    #filename += '/icons/'
-
-    email = session['user']
-    with sqlite3.connect("chat.db") as conn:
-        conn.execute("UPDATE users SET icon_filename=?, icon_is_default=0 WHERE email=?", (filename, email))
-
-    return jsonify({"status": "ok", "filename": filename})
-
-
-# ユーザー登録画面
+# === ユーザー登録 ===
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -104,38 +66,36 @@ def register():
 
         if not email or not password or not display_name:
             return render_template('register.html', error="すべての項目を入力してください。")
-
         if password != confirm_password:
             return render_template('register.html', error="パスワードが一致しません。")
 
-        if not icon:
-            filename = ""
-        else:
+        filename = ""
+        if icon:
             ext = os.path.splitext(icon.filename)[1]
             filename = f"{uuid.uuid4().hex}{ext}"
-            save_path = os.path.join(app.config['ICON_FOLDER'], filename)
-            icon.save(save_path)
+            icon.save(os.path.join(app.config['ICON_FOLDER'], filename))
 
         hashed_password = generate_password_hash(password)
-
-        with sqlite3.connect("chat.db") as conn:
-            try:
-                conn.execute("INSERT INTO users (email, display_name, password, icon_filename, icon_is_default) VALUES (?, ?, ?, ?, ?)",
-                             (email, display_name, hashed_password, filename, 0))
-            except sqlite3.IntegrityError:
-                return render_template('register.html', error="このメールアドレスは既に登録されています。")
+        try:
+            with sqlite3.connect("chat.db") as conn:
+                conn.execute('''
+                    INSERT INTO users (email, display_name, password, icon_filename, icon_is_default)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (email, display_name, hashed_password, filename, 0 if icon else 1))
+        except sqlite3.IntegrityError:
+            return render_template('register.html', error="このメールアドレスは既に登録されています。")
 
         session['user'] = email
         return redirect(url_for('chat'))
-
     return render_template('register.html')
 
-# ログイン画面
+
+# === ログイン ===
 @app.route('/', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form['email']
-        password = request.form['password']
+        email = request.form.get('email')
+        password = request.form.get('password')
 
         with sqlite3.connect("chat.db") as conn:
             cur = conn.execute("SELECT id, password FROM users WHERE email=?", (email,))
@@ -143,50 +103,34 @@ def login():
 
         if row and check_password_hash(row[1], password):
             session['user'] = email
-            session['uid'] = row[0]  # ← ここを追加！
+            session['uid'] = row[0]
             return redirect(url_for('chat'))
-        else:
-            #return render_template('login_failed.html')
-            return render_template('login.html', error="メールアドレスまたはパスワードが間違っています。")
+
+        return render_template('login.html', error="メールアドレスまたはパスワードが間違っています。")
 
     return render_template('login.html')
 
-"""
-# 認証
-@app.route('/verify')
-def verify():
-    token = request.args.get('token')
-    now = datetime.utcnow().isoformat()
 
-    with sqlite3.connect("chat.db") as conn:
-        cur = conn.execute("SELECT email FROM tokens WHERE token=? AND expires_at > ?", (token, now))
-        row = cur.fetchone()
-
-    if row:
-        session['user'] = row[0]
-        return redirect(url_for('name'))
-    else:
-        return "このリンクは無効か、期限が切れています。"
-"""
-
-"""
-# 名前入力ページ
-@app.route('/name', methods=['GET', 'POST'])
-def name():
+# === アイコンアップロード（ログイン中） ===
+@app.route('/upload_icon', methods=['POST'])
+def upload_icon():
     if 'user' not in session:
-        return redirect(url_for('login'))
+        return "Unauthorized", 403
 
-    if request.method == 'POST':
-        display_name = request.form['display_name']
-        email = session['user']
+    file = request.files.get('icon')
+    if not file:
+        return "No file", 400
 
-        with sqlite3.connect("chat.db") as conn:
-            conn.execute('REPLACE INTO users (email, display_name) VALUES (?, ?)', (email, display_name))
+    ext = os.path.splitext(file.filename)[1]
+    filename = f"{uuid.uuid4().hex}{ext}"
+    file.save(os.path.join(app.config['ICON_FOLDER'], filename))
 
-        return redirect(url_for('chat'))
+    email = session['user']
+    with sqlite3.connect("chat.db") as conn:
+        conn.execute("UPDATE users SET icon_filename=?, icon_is_default=0 WHERE email=?", (filename, email))
 
-    return render_template('name.html')
-"""
+    return jsonify({"status": "ok", "filename": filename})
+
 
 #ファイルのアップロード
 @app.route('/upload', methods=['POST'])
@@ -218,7 +162,6 @@ def serve_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 
-# チャット画面
 @app.route('/chat')
 def chat():
     if 'user' not in session:
@@ -226,38 +169,11 @@ def chat():
 
     email = session['user']
     with sqlite3.connect("chat.db") as conn:
-        # ユーザー情報（表示名＋アイコン）を取得
         cur = conn.execute("SELECT display_name, icon_filename, icon_is_default FROM users WHERE email=?", (email,))
-        row = cur.fetchone()
-        display_name = row[0] if row else "Unknown"
-        user_icon = row[1] if row and row[1] else None
-        user_icon_is_default = row[2] if row else 1
+        user = cur.fetchone()
 
-        # 全ユーザーの名前とアイコンを取得（メンバーリスト用）
-        cur = conn.execute("SELECT display_name, icon_filename, icon_is_default FROM users")
-        members = [{"name": r[0], "icon": r[1], "icon_is_default": r[2]} for r in cur.fetchall()]
+    return render_template('chat.html', user_email=email, display_name=user[0], icon_filename=user[1], icon_is_default=user[2])
 
-        # メッセージ取得（名前だけでなく送信者のアイコンも含める場合はクエリ変更が必要）
-        cur = conn.execute("SELECT id, name, text, time, read, email FROM messages")
-        messages = []
-        for id, name, text, time_, read, email_ in cur.fetchall():
-            # 送信者のアイコン取得
-            cur_icon = conn.execute("SELECT icon_filename, icon_is_default FROM users WHERE email=?", (email_,))
-            icon_row = cur_icon.fetchone()
-            icon = icon_row[0] if icon_row and icon_row[0] else None
-            messages.append({
-                "id": id,
-                "name": name,
-                "text": text,
-                "time": time_,
-                "read": read,
-                "email": email_,
-                "icon": icon,
-                "icon_is_default": icon_row[1] if icon_row else 1
-            })
-            print(f"Message from {name}: {text} at {time_}, read: {read}, email: {email_}, icon: {icon}, icon_is_default: {icon_row[1] if icon_row else 1}")
-
-    return render_template('chat.html', user=display_name, user_icon=user_icon, user_icon_is_default=user_icon_is_default, messages=messages, email=email, members=members)
 
 #アイコン取得
 @app.route('/icons/<filename>')
@@ -266,87 +182,102 @@ def serve_icon(filename):
 
 @app.route('/api/update-profile', methods=['POST'])
 def update_profile():
-    print("¥n¥n¥n¥nUpdating profile...")
-    uid = session.get("uid")
-    if not uid:
-        print("¥nUser not logged in")
-        return jsonify({"success": False, "error": "ログインしていません"}), 401
-
-    name = request.form.get("name")  # ← JSONではなくformから取得
-    icon = request.files.get("icon")
-    print(f"Updating profile for UID {uid}: name={name}, icon={icon}")
-
-    with sqlite3.connect("chat.db") as db:
-        if icon:
-            ext = os.path.splitext(icon.filename)[1]
-            filename = f"{uuid.uuid4().hex}{ext}"
-            save_path = os.path.join(app.config['ICON_FOLDER'], filename)
-            icon.save(save_path)
-            db.execute("UPDATE users SET display_name=?, icon_filename=? WHERE id=?", (name, filename, uid))
-            print(f"uid={uid}のユーザーのアイコン、名前を更新しました: {filename}, {name}")
-        else:
-            db.execute("UPDATE users SET display_name=? WHERE id=?", (name, uid))
-            print(f"uid={uid}のユーザーの名前を更新しました: {name}")
-
-    #session.clear()
-    session['name'] = name  # セッションに名前を保存
-    session['icon'] = filename if icon else session.get('icon', None)  # アイコンがない場合は既存のアイコンを保持
-    #return redirect('/login')
-    return jsonify({"success": True})
-
-# メッセージ送信
-@app.route('/send', methods=['POST'])
-def send_message():
-    print("sending message...")
     if 'user' not in session:
-        print("User not logged in")
-        return jsonify({"error": "未ログイン"}), 403
-
-    data = request.get_json()
-    now = datetime.now().strftime("%H:%M")
+        return "Unauthorized", 403
 
     email = session['user']
+    new_name = request.form.get('display_name')
+    icon = request.files.get('icon')
+
+    with sqlite3.connect("chat.db") as conn:
+        # 旧ユーザー情報を取得（古いアイコン削除のため）
+        cur = conn.execute("SELECT icon_filename, icon_is_default FROM users WHERE email=?", (email,))
+        row = cur.fetchone()
+        old_icon_filename = row[0]
+        old_icon_is_default = row[1]
+
+        # 更新内容の組み立て
+        update_fields = []
+        update_values = []
+
+        if new_name:
+            update_fields.append("display_name=?")
+            update_values.append(new_name)
+
+        if icon and icon.filename:
+            filename = f"{uuid.uuid4().hex}.png"
+            icon.save(os.path.join(app.config['ICON_FOLDER'], filename))
+
+            # 古いアイコンがデフォルトでなければ削除
+            if old_icon_filename and not old_icon_is_default:
+                try:
+                    os.remove(os.path.join(app.config['ICON_FOLDER'], old_icon_filename))
+                except FileNotFoundError:
+                    pass  # ファイルが存在しない場合は無視
+
+            update_fields.extend(["icon_filename=?", "icon_is_default=?"])
+            update_values.extend([filename, 0])  # 0 = カスタムアイコン
+
+        update_values.append(email)
+        if update_fields:
+            conn.execute(f"UPDATE users SET {', '.join(update_fields)} WHERE email=?", update_values)
+
+        # メッセージの名前更新
+        if new_name:
+            conn.execute("UPDATE messages SET name=? WHERE email=?", (new_name, email))
+
+    
+    return jsonify({"success": True})
+
+# === メッセージ送信 ===
+@app.route('/send_message', methods=['POST'])
+def send_message():
+    if 'user' not in session:
+        return "Unauthorized", 403
+
+    text = request.form.get('text')
+    email = session['user']
+
     with sqlite3.connect("chat.db") as conn:
         cur = conn.execute("SELECT display_name FROM users WHERE email=?", (email,))
         row = cur.fetchone()
+        name = row[0]
 
-    name = row[0] if row else "Unknown"
-    text = data.get("text", "")
-    #random_id = str(uuid.uuid4())
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        conn.execute('''
+            INSERT INTO messages (name, text, time, read, email)
+            VALUES (?, ?, ?, 0, ?)
+        ''', (name, text, now, email))
 
-    with sqlite3.connect("chat.db") as conn:
-        #conn.execute("ALTER TABLE messages ADD COLUMN email TEXT")  # 初回だけ実行すればOK
-        conn.execute("INSERT INTO messages (name, text, time, read, email) VALUES (?, ?, ?, ?, ?)",
-                     (name, text, now, 0, email))
+    return jsonify({"status": "ok", "message": text, "time": now})
 
-    print(f"Message sent successfully by {name}: {text} at {now}, email: {email}")
-    return jsonify({"status": "ok"})
-
-#メッセージ読み込み
-@app.route('/messages')
+# === メッセージ取得 ===
+@app.route('/get_messages')
 def get_messages():
-    with sqlite3.connect("chat.db") as conn:
-        cur = conn.execute("SELECT id, name, text, time, read, email FROM messages")
-        rows = cur.fetchall()
+    if 'user' not in session:
+        return "Unauthorized", 403
 
-        messages = []
-        for id, name, text, time_, read, email in rows:
-            cur_icon = conn.execute("SELECT icon_filename, icon_is_default FROM users WHERE email=?", (email,))
-            icon_row = cur_icon.fetchone()
-            icon = icon_row[0] if icon_row and icon_row[0] else None
+    email = session['user']
+    messages = []
+    with sqlite3.connect("chat.db") as conn:
+        cur = conn.execute('''
+            SELECT m.id, m.name, m.text, m.time, m.read, m.email, u.icon_filename, u.icon_is_default
+            FROM messages m
+            LEFT JOIN users u ON m.email = u.email
+        ''')
+        for row in cur.fetchall():
             messages.append({
-                "id": id,
-                "name": name,
-                "text": text,
-                "time": time_,
-                "read": read,
-                "email": email,
-                "icon": icon,
-                "icon_is_default": icon_row[1] if icon_row else 1
+                'id': row[0],
+                'name': row[1],
+                'text': row[2],
+                'time': row[3],
+                'read': row[4],
+                'email': row[5],
+                'icon_filename': row[6],
+                'icon_is_default': row[7],
             })
 
     return jsonify(messages)
-
 # ログアウト
 @app.route('/logout')
 def logout():
