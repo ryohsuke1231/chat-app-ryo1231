@@ -385,6 +385,7 @@
       };
 
       document.getElementById("saveSettings").onclick = async () => {
+        alert("プロフィールを更新します。");
         const formData = new FormData();
         formData.append("name", document.getElementById("newName").value);
 
@@ -411,6 +412,7 @@
         const result = await res.json();
         if (result.success) {
           window.location.href = "/chat";
+          
         } else {
           alert("プロフィールを更新できませんでした。");
         }

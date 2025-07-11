@@ -256,8 +256,10 @@ def serve_icon(filename):
 
 @app.route("/api/update-profile", methods=["POST"])
 def update_profile():
+    print("¥n¥n¥n¥nUpdating profile...")
     uid = session.get("uid")
     if not uid:
+        print("¥nUser not logged in")
         return jsonify({"error": "ログインしていません"}), 401
 
     name = request.form.get("name")  # ← JSONではなくformから取得
@@ -271,8 +273,10 @@ def update_profile():
             save_path = os.path.join(app.config['ICON_FOLDER'], filename)
             icon.save(save_path)
             db.execute("UPDATE users SET display_name=?, icon_filename=? WHERE id=?", (name, filename, uid))
+            print(f"uid={uid}のユーザーのアイコン、名前を更新しました: {filename}, {name}")
         else:
             db.execute("UPDATE users SET display_name=? WHERE id=?", (name, uid))
+            print(f"uid={uid}のユーザーの名前を更新しました: {name}")
 
     #session.clear()
     session['name'] = name  # セッションに名前を保存
