@@ -1,116 +1,150 @@
 <!DOCTYPE html>
 <html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <title>ログイン</title>
-  <style>
-    body {
-      font-family: "Helvetica Neue", sans-serif;
-      background: #f0f2f5;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <title>ログイン</title>
+    <style>
+      body {
+        font-family: "Helvetica Neue", sans-serif;
+        background: #f0f2f5;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+      }
 
-    .login-box {
-      background: white;
-      padding: 40px;
-      border-radius: 12px;
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-      width: 300px;
-      text-align: center;
-    }
+      .login-box {
+        background: white;
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        width: 300px;
+        text-align: center;
+      }
 
-    .login-box h2 {
-      margin-bottom: 24px;
-    }
+      .login-box h2 {
+        margin-bottom: 24px;
+      }
 
-    .login-box input {
-      width: 100%;
-      padding: 12px;
-      margin: 8px 0;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      font-size: 14px;
-    }
+      .login-box input {
+        width: 100%;
+        padding: 12px;
+        margin: 8px 0;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        font-size: 14px;
+      }
 
-    .login-box button {
-      width: 100%;
-      padding: 12px;
-      margin-top: 16px;
-      background-color: #4CAF50;
-      border: none;
-      color: white;
-      font-size: 16px;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
+      .login-box button {
+        width: 100%;
+        padding: 12px;
+        margin-top: 16px;
+        background-color: #4caf50;
+        border: none;
+        color: white;
+        font-size: 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+      }
 
-    .login-box button:hover {
-      background-color: #45a049;
-    }
+      .login-box button:hover {
+        background-color: #45a049;
+      }
 
-    .login-box a {
-      display: inline-block;
-      margin-top: 16px;
-      color: #333;
-      text-decoration: none;
-      font-size: 14px;
-    }
+      .login-box a {
+        display: inline-block;
+        margin-top: 16px;
+        color: #333;
+        text-decoration: none;
+        font-size: 14px;
+      }
 
-    .login-box a:hover {
-      text-decoration: underline;
-    }
-  </style>
-</head>
-<body>
-  <div class="login-box">
-    <h2>ログイン</h2>
+      .login-box a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-box">
+      <h2>ログイン</h2>
 
-    {% if error %}
+      {% if error %}
       <script>
         alert("{{ error }}");
-        window.onload = function() {
+        window.onload = function () {
           document.querySelector("input[name='email']").value = "";
           document.querySelector("input[name='password']").value = "";
         };
       </script>
-    {% endif %}
+      {% endif %}
 
-    <form method="POST">
-      <input type="email" name="email" placeholder="メールアドレス" required>
-      <input type="password" name="password" placeholder="パスワード" required>
-      <button type="submit">ログイン</button>
-    </form>
-    <a href="{{ url_for('register') }}">アカウント新規作成</a>
-  </div>
-  <script>
-  document.querySelectorAll('input[type="password"]').forEach(input => {
-    let timeoutId;
+      <form method="POST">
+        <input
+          type="email"
+          name="email"
+          placeholder="メールアドレス"
+          required
+        />
 
-    // 入力時：一瞬だけ見えるように
-    input.addEventListener('input', (e) => {
-      const el = e.target;
+        <!-- 表示用パスワード -->
+        <input
+          id="password_display"
+          type="text"
+          placeholder="パスワード"
+          autocomplete="off"
+        />
 
-      // すぐに見えるようにする
-      el.type = 'text';
+        <!-- 実際に送信されるパスワード -->
+        <input
+          id="password_real"
+          name="password"
+          type="password"
+          style="display: none"
+          required
+        />
 
-      // タイマーをリセットして、1秒後に戻す
-      if (timeoutId) clearTimeout(timeoutId);
+        <button type="submit">ログイン</button>
+      </form>
 
-      timeoutId = setTimeout(() => {
-        el.type = 'password';
-      }, 1000);
-    });
+      <a href="{{ url_for('register') }}">アカウント新規作成</a>
+    </div>
+    <script>
+      function setupMaskedInput(displayId, realId) {
+        const displayInput = document.getElementById(displayId);
+        const realInput = document.getElementById(realId);
+        let timeoutId;
 
-    // フォーカスが外れたら、必ず password に戻す（←これ重要！）
-    input.addEventListener('blur', () => {
-      input.type = 'password';
-      if (timeoutId) clearTimeout(timeoutId);
-    });
-  });
-</script>
-</body>
+        displayInput.addEventListener("input", () => {
+          const newText = displayInput.value;
+          const oldText = realInput.value;
+
+          if (newText.length > oldText.length) {
+            const addedChar = newText.slice(-1);
+            realInput.value += addedChar;
+          } else {
+            realInput.value = realInput.value.slice(0, newText.length);
+          }
+
+          const masked =
+            "●".repeat(realInput.value.length - 1) +
+            (realInput.value.slice(-1) || "");
+          displayInput.value = masked;
+
+          if (timeoutId) clearTimeout(timeoutId);
+          timeoutId = setTimeout(() => {
+            displayInput.value = "●".repeat(realInput.value.length);
+          }, 1000);
+        });
+
+        displayInput.addEventListener("blur", () => {
+          displayInput.value = "●".repeat(realInput.value.length);
+          if (timeoutId) clearTimeout(timeoutId);
+        });
+      }
+
+      setupMaskedInput("password_display", "password_real");
+    </script>
+  </body>
+</html>
