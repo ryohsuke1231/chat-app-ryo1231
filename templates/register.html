@@ -173,24 +173,19 @@
         displayInput.addEventListener("input", (e) => {
           if (isUpdating) return;
           
-          const currentDisplayValue = displayInput.value;
-          const currentRealValue = realInput.value;
+          const inputValue = e.target.value;
+          const currentLength = realInput.value.length;
           
-          // ●を除去して実際の文字だけを抽出
-          let newChar = '';
-          for (let i = 0; i < currentDisplayValue.length; i++) {
-            if (currentDisplayValue[i] !== '●') {
-              newChar = currentDisplayValue[i];
-              break;
+          // 新しい文字が追加された場合
+          if (inputValue.length > currentLength) {
+            // 最後に入力された文字を取得（●以外）
+            const newChar = inputValue.replace(/●/g, '').slice(-1);
+            if (newChar) {
+              realInput.value += newChar;
             }
-          }
-          
-          // 新しい文字が入力された場合
-          if (newChar && currentDisplayValue.length > currentRealValue.length) {
-            realInput.value = currentRealValue + newChar;
-          } else if (currentDisplayValue.length < currentRealValue.length) {
+          } else if (inputValue.length < currentLength) {
             // 文字が削除された場合
-            realInput.value = currentRealValue.slice(0, currentDisplayValue.length);
+            realInput.value = realInput.value.slice(0, inputValue.length);
           }
 
           updateMaskedDisplay();
@@ -204,6 +199,11 @@
               realInput.value = realInput.value.slice(0, -1);
               updateMaskedDisplay();
             }
+          } else if (e.key.length === 1) {
+            // 通常の文字入力
+            e.preventDefault();
+            realInput.value += e.key;
+            updateMaskedDisplay();
           }
         });
 
@@ -211,22 +211,25 @@
           if (isUpdating) return;
           
           isUpdating = true;
-          const realLength = realInput.value.length;
+          const length = realInput.value.length;
           
-          if (realLength === 0) {
+          if (length === 0) {
             displayInput.value = "";
           } else {
-            const maskCount = Math.max(0, realLength - 1);
-            const lastChar = realInput.value.slice(-1);
-            displayInput.value = "●".repeat(maskCount) + lastChar;
+            // 最後の文字以外を●でマスク
+            const masked = "●".repeat(Math.max(0, length - 1)) + realInput.value.slice(-1);
+            displayInput.value = masked;
           }
           isUpdating = false;
 
+          // 1秒後に全てマスク
           if (timeoutId) clearTimeout(timeoutId);
           timeoutId = setTimeout(() => {
-            isUpdating = true;
-            displayInput.value = "●".repeat(Math.max(0, realInput.value.length));
-            isUpdating = false;
+            if (!isUpdating) {
+              isUpdating = true;
+              displayInput.value = "●".repeat(realInput.value.length);
+              isUpdating = false;
+            }
           }, 1000);
         }
 
