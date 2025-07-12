@@ -58,6 +58,10 @@ init_db()
 # === アプリパスワード認証 ===
 @app.route('/app_auth', methods=['GET', 'POST'])
 def app_auth():
+    # 既に認証済みの場合はログイン画面へリダイレクト
+    if session.get('app_authenticated', False):
+        return redirect(url_for('login'))
+        
     if request.method == 'POST':
         app_password = request.form.get('app_password')
         if app_password == APP_PASSWORD:
