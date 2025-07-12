@@ -68,6 +68,7 @@ def app_auth():
         if app_password == APP_PASSWORD:
             print("アプリパスワード認証成功")
             session['app_authenticated'] = True
+            session.permanent = True  # セッションを永続化
             return redirect(url_for('login'))
         else:
             print("アプリパスワード認証失敗")

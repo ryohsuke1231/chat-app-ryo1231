@@ -128,19 +128,20 @@
             realInput.value = realInput.value.slice(0, newText.length);
           }
 
+          const maskLength = Math.max(0, realInput.value.length - 1);
           const masked =
-            "●".repeat(realInput.value.length - 1) +
+            "●".repeat(maskLength) +
             (realInput.value.slice(-1) || "");
           displayInput.value = masked;
 
           if (timeoutId) clearTimeout(timeoutId);
           timeoutId = setTimeout(() => {
-            displayInput.value = "●".repeat(realInput.value.length);
+            displayInput.value = "●".repeat(Math.max(0, realInput.value.length));
           }, 1000);
         });
 
         displayInput.addEventListener("blur", () => {
-          displayInput.value = "●".repeat(realInput.value.length);
+          displayInput.value = "●".repeat(Math.max(0, realInput.value.length));
           if (timeoutId) clearTimeout(timeoutId);
         });
       }
