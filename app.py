@@ -8,7 +8,7 @@ import uuid
 from datetime import datetime
 import os
 import logging
-logging.getLogger('werkzeug').setLevel(logging.WARNING)
+logging.getLogger('werkzeug').setLevel(logging.INFO)
 
 
 app = Flask(__name__)

@@ -365,6 +365,7 @@
 
     async function send() {
       const text = document.getElementById("text").value;
+      alert("メッセージを送信します: " + text)
       sendMessageToPython("メッセージ送信: " + text);
       if (!text) return alert("メッセージを入力してください");
       if (!text.trim()) return;
