@@ -65,7 +65,7 @@ def app_auth():
             return redirect(url_for('login'))
         else:
             return render_template('app_password.html', error="パスワードが間違っています")
-    return render_template('login.html')
+    return render_template('app_password.html')
 
 # アプリ認証チェック関数
 def check_app_auth():
