@@ -173,26 +173,53 @@
         displayInput.addEventListener("input", (e) => {
           if (isUpdating) return;
           
-          const newText = displayInput.value;
-          const oldText = realInput.value;
-
-          // ●文字を除去して実際の入力文字のみを取得
-          const cleanNewText = newText.replace(/●/g, '');
+          const currentDisplayValue = displayInput.value;
+          const currentRealValue = realInput.value;
           
-          if (cleanNewText.length > oldText.length) {
-            // 文字が追加された場合
-            const addedChar = cleanNewText.slice(-1);
-            realInput.value += addedChar;
-          } else if (cleanNewText.length < oldText.length) {
+          // ●を除去して実際の文字だけを抽出
+          let newChar = '';
+          for (let i = 0; i < currentDisplayValue.length; i++) {
+            if (currentDisplayValue[i] !== '●') {
+              newChar = currentDisplayValue[i];
+              break;
+            }
+          }
+          
+          // 新しい文字が入力された場合
+          if (newChar && currentDisplayValue.length > currentRealValue.length) {
+            realInput.value = currentRealValue + newChar;
+          } else if (currentDisplayValue.length < currentRealValue.length) {
             // 文字が削除された場合
-            realInput.value = realInput.value.slice(0, cleanNewText.length);
+            realInput.value = currentRealValue.slice(0, currentDisplayValue.length);
           }
 
-          // マスク表示：最後の1文字だけ表示
+          updateMaskedDisplay();
+        });
+
+        // キーダウンイベントでBackspaceを処理
+        displayInput.addEventListener("keydown", (e) => {
+          if (e.key === "Backspace") {
+            e.preventDefault();
+            if (realInput.value.length > 0) {
+              realInput.value = realInput.value.slice(0, -1);
+              updateMaskedDisplay();
+            }
+          }
+        });
+
+        function updateMaskedDisplay() {
+          if (isUpdating) return;
+          
           isUpdating = true;
-          const maskLength = Math.max(0, realInput.value.length - 1);
-          const masked = "●".repeat(maskLength) + (realInput.value.slice(-1) || "");
-          displayInput.value = masked;
+          const realLength = realInput.value.length;
+          
+          if (realLength === 0) {
+            displayInput.value = "";
+          } else {
+            const maskCount = Math.max(0, realLength - 1);
+            const lastChar = realInput.value.slice(-1);
+            displayInput.value = "●".repeat(maskCount) + lastChar;
+          }
           isUpdating = false;
 
           if (timeoutId) clearTimeout(timeoutId);
@@ -201,28 +228,7 @@
             displayInput.value = "●".repeat(Math.max(0, realInput.value.length));
             isUpdating = false;
           }, 1000);
-        });
-
-        // キーダウンイベントでBackspaceを処理
-        displayInput.addEventListener("keydown", (e) => {
-          if (e.key === "Backspace" && realInput.value.length > 0) {
-            e.preventDefault();
-            realInput.value = realInput.value.slice(0, -1);
-            
-            isUpdating = true;
-            const maskLength = Math.max(0, realInput.value.length - 1);
-            const masked = "●".repeat(maskLength) + (realInput.value.slice(-1) || "");
-            displayInput.value = masked;
-            isUpdating = false;
-
-            if (timeoutId) clearTimeout(timeoutId);
-            timeoutId = setTimeout(() => {
-              isUpdating = true;
-              displayInput.value = "●".repeat(Math.max(0, realInput.value.length));
-              isUpdating = false;
-            }, 1000);
-          }
-        });
+        }
 
         // フォーカス外れたときは完全にマスク
         displayInput.addEventListener("blur", () => {
