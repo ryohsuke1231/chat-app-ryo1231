@@ -15,6 +15,7 @@ app.secret_key = 'your_secret_key'
 UPLOAD_FOLDER = 'uploads'
 ICON_FOLDER = 'icons'
 TOKEN_EXPIRATION_MINUTES = 10
+APP_PASSWORD = 'chatapp2024'  # アプリアクセス用パスワード
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(ICON_FOLDER, exist_ok=True)
@@ -54,9 +55,29 @@ def init_db():
         ''')
 init_db()
 
+# === アプリパスワード認証 ===
+@app.route('/app_auth', methods=['GET', 'POST'])
+def app_auth():
+    if request.method == 'POST':
+        app_password = request.form.get('app_password')
+        if app_password == APP_PASSWORD:
+            session['app_authenticated'] = True
+            return redirect(url_for('login'))
+        else:
+            return render_template('app_password.html', error="パスワードが間違っています")
+    return render_template('app_password.html')
+
+# アプリ認証チェック関数
+def check_app_auth():
+    return session.get('app_authenticated', False)
+
 # === ユーザー登録 ===
 @app.route('/register', methods=['GET', 'POST'])
 def register():
+    # アプリパスワード認証チェック
+    if not check_app_auth():
+        return redirect(url_for('app_auth'))
+        
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
@@ -93,6 +114,10 @@ def register():
 # === ログイン ===
 @app.route('/', methods=['GET', 'POST'])
 def login():
+    # アプリパスワード認証チェック
+    if not check_app_auth():
+        return redirect(url_for('app_auth'))
+        
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
@@ -165,6 +190,10 @@ def serve_file(filename):
 # チャット画面
 @app.route('/chat')
 def chat():
+    # アプリパスワード認証チェック
+    if not check_app_auth():
+        return redirect(url_for('app_auth'))
+        
     if 'user' not in session:
         return redirect(url_for('login'))
 
@@ -314,7 +343,8 @@ def get_messages():
 @app.route('/logout')
 def logout():
     session.pop('user', None)
-    return redirect(url_for('login'))
+    session.pop('app_authenticated', None)  # アプリ認証も解除
+    return redirect(url_for('app_auth'))
 
 @app.route("/api/user-info")
 def user_info():
