@@ -60,15 +60,18 @@ init_db()
 def app_auth():
     # 既に認証済みの場合はログイン画面へリダイレクト
     if session.get('app_authenticated', False):
+        print("既にアプリパスワード認証済みです。ログイン画面へリダイレクト")
         return redirect(url_for('login'))
         
     if request.method == 'POST':
-        app_password = request.form.get('app_password')
+        app_password = str(request.form.get('app_password'))
         if app_password == APP_PASSWORD:
+            print("アプリパスワード認証成功")
             session['app_authenticated'] = True
             return redirect(url_for('login'))
         else:
-            return render_template('app_password.html', error="パスワードが間違っています")
+            print("アプリパスワード認証失敗")
+            return render_template('app_password.html', error="アプリパスワードが間違っています。")
     return render_template('app_password.html')
 
 # アプリ認証チェック関数
