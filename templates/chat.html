@@ -269,7 +269,7 @@
       const response = await fetch('/api/members');
       const members = await response.json();
 
-      const list = document.getElementById('member-list');
+      const list = document.getElementById('members-list');
       list.innerHTML = '';  // 既存内容をクリア
 
       members.forEach(member => {
