@@ -355,7 +355,7 @@ def logout():
     session.pop('uid', None)
     print("ログアウトしました。")
     #return redirect(url_for('login'))
-    return jsonify({"status": "ok"})
+    return jsonify({"status": "ok"}
 
 @app.route("/api/user-info")
 def user_info():

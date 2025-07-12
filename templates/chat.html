@@ -414,10 +414,18 @@
       }
       }
       document.getElementById("logout").onclick = async () => {
+        sendMessageToPython("ログアウト")
         const res = await fetch("/logout", { method: "POST"})
-        if (res.ok) {
-          window.location.href = "/login";
-        }
+        　.then(response => response.json())
+          .then(data => {
+            if (data.status === "ok"){
+              window.location.href = "/login";
+            }else{
+              alert("ログアウトに失敗しました。");
+              sendMessageToPython("ログアウト失敗");
+            }
+          })
+        
       };
       document.getElementById("settingsBtn").onclick = async () => {
         // モーダルを開く
