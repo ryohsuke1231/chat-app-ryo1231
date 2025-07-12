@@ -324,7 +324,7 @@
         } else {
           iconUrl = `/icons/${msg.icon_filename}`;
         }
-        sendMessageToPython(`アイコン：${iconUrl}`)
+        #sendMessageToPython(`アイコン：${iconUrl}`)
         //const iconUrl = iconFilename;
         bubble.className = `msg ${side}`
         bubble.innerHTML = `
@@ -467,6 +467,7 @@
         if (fileInput.files.length > 0) {
           formData.append("icon", fileInput.files[0]);
         }
+        sendMessageToPython("プロフィール更新: " + formData.get("name") + ", アイコン: " + formData.get("icon"))
 
         const newName = formData.get("name");
         const newIcon = formData.get("icon");

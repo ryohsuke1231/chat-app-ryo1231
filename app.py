@@ -7,6 +7,9 @@ import sqlite3
 import uuid
 from datetime import datetime
 import os
+import logging
+logging.getLogger('werkzeug').setLevel(logging.WARNING)
+
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
@@ -236,7 +239,7 @@ def chat():
                 "icon": icon,
                 "icon_is_default": icon_row[1] if icon_row else 1
             })
-            print(f"Message from {name}: {text} at {time_}, read: {read}, email: {email_}, icon: {icon}, icon_is_default: {icon_row[1] if icon_row else 1}")
+            #print(f"Message from {name}: {text} at {time_}, read: {read}, email: {email_}, icon: {icon}, icon_is_default: {icon_row[1] if icon_row else 1}")
 
     return render_template('chat.html', user=display_name, user_icon=user_icon, user_icon_is_default=user_icon_is_default, messages=messages, email=email, members=members)
 
@@ -248,6 +251,7 @@ def serve_icon(filename):
 @app.route('/api/update-profile', methods=['POST'])
 def update_profile():
     if 'user' not in session:
+        print("Unauthorized access to update profile")
         return "Unauthorized", 403
     print("Updating profile...")
 
@@ -322,7 +326,7 @@ def send_message():
 # === メッセージ取得 ===
 @app.route('/messages')
 def get_messages():
-    print("Fetching messages...")
+    #print("Fetching messages...")
     if 'user' not in session:
         return "Unauthorized", 403
 
@@ -345,21 +349,22 @@ def get_messages():
                 'icon_filename': row[6],
                 'icon_is_default': row[7],
             })
-    print(f"Fetched {len(messages)} messages")
+    #print(f"Fetched {len(messages)} messages")
     return jsonify(messages)
 # ログアウト
 @app.route('/logout', methods=['POST'])
 def logout():
-    session.pop('user', None)
-    session.pop('app_authenticated', None)  # アプリ認証も解除
-    session.pop('uid', None)
+    #session.pop('user', None)
+    #session.pop('app_authenticated', None)  # アプリ認証も解除
+    #session.pop('uid', None)
+    session.clear()
     print("ログアウトしました。")
     #return redirect(url_for('login'))
     return jsonify({"status": "ok"})
 
 @app.route("/api/user-info")
 def user_info():
-    print("Fetching user info...")
+    #print("Fetching user info...")
     uid = session.get("uid")
     if not uid:
         return jsonify({"error": "未ログイン"}), 401
@@ -370,7 +375,7 @@ def user_info():
         if not user:
             print("User not found")
             return jsonify({"error": "ユーザーが見つかりません"}), 404
-        print(f"User info fetched: {user['display_name']}, icon: {user['icon_filename']}, email: {user['email']}, is_default: {user['icon_is_default']}")
+        #print(f"User info fetched: {user['display_name']}, icon: {user['icon_filename']}, email: {user['email']}, is_default: {user['icon_is_default']}")
         return jsonify({
             "name": user["display_name"],
             "iconUrl": (
