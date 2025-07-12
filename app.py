@@ -256,7 +256,7 @@ def update_profile():
     print("Updating profile...")
 
     email = session['user']
-    new_name = request.form.get('display_name')
+    new_name = request.form.get('name')
     icon = request.files.get('icon')
 
     with sqlite3.connect("chat.db") as conn:
@@ -394,6 +394,15 @@ def receive_message():
 
     print(f"[受信メッセージ] {text}")  # ← ターミナルに出る
     return jsonify({"status": "ok"})
+
+@app.route("/api/members")
+def get_members():
+    with sqlite3.connect("chat.db") as conn:
+        cur = conn.execute("SELECT display_name, icon_filename, icon_is_default FROM users")
+        members = [{"name": r[0], "icon": r[1], "icon_is_default": r[2]} for r in cur.fetchall()]
+        #conn.commit()
+        return jsonify(members)
+    
 
 if __name__ == '__main__':
     app.run(debug=True)

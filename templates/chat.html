@@ -220,7 +220,7 @@
     <button id="settingsBtn">⚙️</button>
   </header>
 
-  <!-- チャット本体 -->
+    <!-- チャット本体 -->
   <div id="container">
     <div id="main">
       <div id="chat"></div>
@@ -236,18 +236,12 @@
     </div>
   </div>
 
-    <div id="sidebar">
-      <h3>メンバー</h3>
-      <ul>
-        {% for member in members %}
-        <li>
-          <img src="{{ url_for('serve_icon', filename=member.icon) if member.icon else url_for('static', filename='default.jpeg') }}" height="32" class="icon">
-          {{ member.name }}
-        </li>
-        {% endfor %}
-      </ul>
-    </div>
+  <div id="sidebar">
+    <h3>メンバー</h3>
+    <ul id="members-list">
+    </ul>
   </div>
+  
 
   <!-- モーダル（プロフィール設定） -->
   <div id="settingsModal" class="modal" style="display: none;">
@@ -267,9 +261,37 @@
     <button id="saveSettings" type="button">保存</button>
     <button id="closeSettings" type="button">キャンセル</button>
   </div>
+</body>
 
   <!-- JavaScript は元のままでOK -->
   <script>
+    async function loadMembers() {
+      const response = await fetch('/api/members');
+      const members = await response.json();
+
+      const list = document.getElementById('member-list');
+      list.innerHTML = '';  // 既存内容をクリア
+
+      members.forEach(member => {
+        const li = document.createElement('li');
+
+        const img = document.createElement('img');
+        img.height = 32;
+        img.className = 'icon';
+
+        if (member.icon_is_default) {
+          img.src = `/icon/${member.icon}`;  // 例: /icon/taro.jpeg
+        } else {
+          img.src = `/static/default.jpeg`;
+        }
+
+        const nameText = document.createTextNode(' ' + member.name);
+
+        li.appendChild(img);
+        li.appendChild(nameText);
+        list.appendChild(li);
+      });
+    }
     // ここにJSコードを入れる（元のコードをそのまま使える）
     /*
     //async function update_info() {
@@ -324,7 +346,7 @@
         } else {
           iconUrl = `/icons/${msg.icon_filename}`;
         }
-        #sendMessageToPython(`アイコン：${iconUrl}`)
+        //sendMessageToPython(`アイコン：${iconUrl}`)
         //const iconUrl = iconFilename;
         bubble.className = `msg ${side}`
         bubble.innerHTML = `
@@ -462,9 +484,9 @@
         alert("プロフィールを更新します。");
         sendMessageToPython("profile update");
         const formData = new FormData();
-        formData.append("name", document.getElementById("newName").value);
+        formData.append("name", String(document.getElementById("displayNameInput").value));
 
-        const fileInput = document.getElementById("newIcon");
+        const fileInput = document.getElementById("iconInput");
         if (fileInput.files.length > 0) {
           formData.append("icon", fileInput.files[0]);
         }
@@ -496,6 +518,7 @@
             .then(response => response.json())
               .then(data => {
                 if (data.status === "ok"){
+                  loadMembers();
                   window.location.href = "/login";
                   window.location.reload();
                 }else{
@@ -530,6 +553,7 @@
 
       setInterval(loadMessages, 1000);
       loadMessages();
+      loadMembers();
 
     </script>
   </body>
