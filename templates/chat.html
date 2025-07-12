@@ -322,7 +322,7 @@
         if (msg.icon_is_default) {
           iconUrl = '/static/default.jpeg';
         } else {
-          iconUrl = `/icons/${msg.icon}`;
+          iconUrl = `/icons/${msg.icon_filename}`;
         }
         sendMessageToPython(`アイコン：${iconUrl}`)
         //const iconUrl = iconFilename;
@@ -331,7 +331,7 @@
           <div class="msg-content">
             <div class="bubble">
               <div class="header">
-                <img src="${iconUrl}" class="icon" height="24" />
+                <img src=${iconUrl} class="icon" height="24" />
                 <strong>${msg.name}</strong>
               </div>
               <div class="text">
@@ -420,6 +420,7 @@
           .then(data => {
             if (data.status === "ok"){
               window.location.href = "/login";
+              window.location.reload();
             }else{
               alert("ログアウトに失敗しました。");
               sendMessageToPython("ログアウト失敗");
@@ -486,8 +487,21 @@
           });
           const result = await res.json();
           if (result.success) {
-            window.location.href = "/chat";
-          
+            //window.location.href = "/chat";
+            alert("プロフィールの更新を完了するために、ログアウトします。")
+            sendMessageToPython("ログアウト")
+            const res = await fetch("/logout", { method: "POST"})
+            .then(response => response.json())
+              .then(data => {
+                if (data.status === "ok"){
+                  window.location.href = "/login";
+                  window.location.reload();
+                }else{
+                  alert("ログアウトに失敗しました。");
+                  sendMessageToPython("ログアウト失敗");
+                }
+              })
+
           } else {
             alert("プロフィールを更新できませんでした。");
             sendMessageToPython("プロフィール更新失敗");
