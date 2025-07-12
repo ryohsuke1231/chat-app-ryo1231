@@ -318,12 +318,15 @@
         // アイコン画像のURLを作る（ファイルが存在しない場合はデフォルトにするなど応用可）
         //const iconUrl = /icons/${msg.icon || 'default.jpeg'};
         //const iconUrl = msg.icon ? '/icons/' + msg.icon : '/static/default.jpeg';
+        iconUrl = "before change"
         if (msg.icon_is_default) {
           iconUrl = '/static/default.jpeg';
         } else {
           iconUrl = `/icons/${msg.icon}`;
         }
+        sendMessageToPython(`アイコン：${iconUrl}`)
         //const iconUrl = iconFilename;
+        bubble.className = `msg ${side}`
         bubble.innerHTML = `
           <div class="msg-content">
             <div class="bubble">
@@ -410,6 +413,12 @@
         alert("アップロード失敗");
       }
       }
+      document.getElementById("logout").onclick = async () => {
+        const res = await fetch("/logout", { method: "POST"})
+        if (res.ok) {
+          window.location.href = "/login";
+        }
+      };
       document.getElementById("settingsBtn").onclick = async () => {
         // モーダルを開く
         document.getElementById("settingsModal").style.display = "block";

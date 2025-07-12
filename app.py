@@ -243,7 +243,7 @@ def chat():
 #アイコン取得
 @app.route('/icons/<filename>')
 def serve_icon(filename):
-    return send_from_directory(app.config['ICON_FOLDER'], filename)
+    return send_from_directory(app.config['ICON_FOLDER'], str(filename))
 
 @app.route('/api/update-profile', methods=['POST'])
 def update_profile():
@@ -348,11 +348,14 @@ def get_messages():
     print(f"Fetched {len(messages)} messages")
     return jsonify(messages)
 # ログアウト
-@app.route('/logout')
+@app.route('/logout', methods=['POST'])
 def logout():
     session.pop('user', None)
     session.pop('app_authenticated', None)  # アプリ認証も解除
-    return redirect(url_for('app_auth'))
+    session.pop('uid', None)
+    print("ログアウトしました。")
+    #return redirect(url_for('login'))
+    return jsonify({"status": "ok"})
 
 @app.route("/api/user-info")
 def user_info():
