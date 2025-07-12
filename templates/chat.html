@@ -279,7 +279,7 @@
         img.height = 32;
         img.className = 'icon';
 
-        if (member.icon_is_default) {
+        if (member.icon_is_default === 0) {
           img.src = `/icons/${member.icon}`;  // 例: /icon/taro.jpeg
         } else {
           img.src = `/static/default.jpeg`;
