@@ -65,7 +65,7 @@ def app_auth():
             return redirect(url_for('login'))
         else:
             return render_template('app_password.html', error="パスワードが間違っています")
-    return render_template('app_password.html')
+    return render_template('login.html')
 
 # アプリ認証チェック関数
 def check_app_auth():
@@ -92,7 +92,7 @@ def register():
 
         filename = ""
         if icon:
-            ext = os.path.splitext(icon.filename)[1]
+            ext = os.path.splitext(str(icon.filename))[1]
             filename = f"{uuid.uuid4().hex}{ext}"
             icon.save(os.path.join(app.config['ICON_FOLDER'], filename))
 
@@ -119,8 +119,8 @@ def login():
         return redirect(url_for('app_auth'))
         
     if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
+        email = str(request.form.get('email'))
+        password = str(request.form.get('password'))
 
         with sqlite3.connect("chat.db") as conn:
             cur = conn.execute("SELECT id, password FROM users WHERE email=?", (email,))
@@ -146,7 +146,7 @@ def upload_icon():
     if not file:
         return "No file", 400
 
-    ext = os.path.splitext(file.filename)[1]
+    ext = os.path.splitext(str(file.filename))[1]
     filename = f"{uuid.uuid4().hex}{ext}"
     file.save(os.path.join(app.config['ICON_FOLDER'], filename))
 
@@ -168,7 +168,7 @@ def upload():
         return "No file", 400
 
     filename = file.filename
-    save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    save_path = os.path.join(app.config['UPLOAD_FOLDER'], str(filename))
     file.save(save_path)
     #id = str(uuid.uuid4())
     now = datetime.now().strftime("%H:%M")
@@ -318,7 +318,7 @@ def get_messages():
     if 'user' not in session:
         return "Unauthorized", 403
 
-    email = session['user']
+    #email = session['user']
     messages = []
     with sqlite3.connect("chat.db") as conn:
         cur = conn.execute('''
