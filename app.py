@@ -121,7 +121,7 @@ def register():
             return render_template('register.html', error="このメールアドレスは既に登録されています。")
 
         session['user'] = email
-        return redirect(url_for('chat'))
+        return redirect(url_for('login'))
     return render_template('register.html')
 
 
