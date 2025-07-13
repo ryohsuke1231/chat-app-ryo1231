@@ -21,7 +21,7 @@ ICON_FOLDER = 'icons'
 TOKEN_EXPIRATION_MINUTES = 10
 #APP_PASSWORD = 'chatapp2024'  # アプリアクセス用パスワード
 #load_dotenv()
-#APP_PASSWORSD = os.getenv('APP_PASSWORD')
+APP_PASSWORD = os.getenv('APP_PASSWORD')
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(ICON_FOLDER, exist_ok=True)
