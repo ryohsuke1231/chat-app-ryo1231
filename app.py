@@ -19,7 +19,9 @@ app.secret_key = 'your_secret_key'
 UPLOAD_FOLDER = 'uploads'
 ICON_FOLDER = 'icons'
 TOKEN_EXPIRATION_MINUTES = 10
-APP_PASSWORD = 'chatapp2024'  # アプリアクセス用パスワード
+#APP_PASSWORD = 'chatapp2024'  # アプリアクセス用パスワード
+#load_dotenv()
+#APP_PASSWORSD = os.getenv('APP_PASSWORD')
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(ICON_FOLDER, exist_ok=True)
@@ -355,9 +357,9 @@ def get_messages():
 # ログアウト
 @app.route('/logout', methods=['POST'])
 def logout():
-    #session.pop('user', None)
-    #session.pop('app_authenticated', None)  # アプリ認証も解除
-    #session.pop('uid', None)
+    session.pop('user', None)
+    session.pop('app_authenticated', None)  # アプリ認証も解除
+    session.pop('uid', None)
     session.clear()
     print("ログアウトしました。")
     #return redirect(url_for('login'))

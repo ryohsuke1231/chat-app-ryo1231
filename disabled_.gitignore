@@ -1,0 +1,19 @@
+# Pythonの一時ファイル
+__pycache__/
+*.pyc
+
+# 環境変数ファイル
+.env
+
+# OSの不要ファイル
+.DS_Store
+
+# エディター設定
+.vscode/
+
+# ログファイル
+*.log
+
+venv/
+env/
+*.db

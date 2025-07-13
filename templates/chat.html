@@ -232,7 +232,7 @@
         <input type="file" id="fileInput" style="display: none;" />
         <span id="fileNameDisplay" style="margin-left: 10px; font-weight: bold;"></span>
         <button id="sendBtn" onclick="send()">送信</button>
-        <button id="fileSendBtn" onclick="uploadFile()">ファイル送信</button>
+        <button id="fileSendBtn" onclick="uploadFile()" disabled>ファイル送信</button>
       </div>
     </div>
   </div>
@@ -276,10 +276,12 @@
 
         // ボタン無効化
         fileSelectBtn.disabled = true;
+        document.getElementById("fileSendBtn").disabled = false;
       } else {
         // ファイル選択解除時はリセット
         fileNameDisplay.textContent = "";
         fileSelectBtn.disabled = false;
+        document.getElementById("fileSendBtn").disabled = true;
       }
     });
     async function loadMembers() {
