@@ -22,4 +22,8 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
+args = "source venv/bin/activate"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
 args = "python app.py"

@@ -228,8 +228,9 @@
       <!-- 送信エリア -->
       <div id="inputArea">
         <input id="text" placeholder="メッセージを入力..." />
-        <label for="fileInput" class="file-btn">ファイルを追加</label>
+        <button type="button" class="file-btn" id="fileSelectBtn" onclick="document.getElementById('fileInput').click();">ファイルを追加</button>
         <input type="file" id="fileInput" style="display: none;" />
+        <span id="fileNameDisplay" style="margin-left: 10px; font-weight: bold;"></span>
         <button id="sendBtn" onclick="send()">送信</button>
         <button id="fileSendBtn" onclick="uploadFile()">ファイル送信</button>
       </div>
@@ -265,6 +266,22 @@
 
   <!-- JavaScript は元のままでOK -->
   <script>
+    const fileInput = document.getElementById("fileInput");
+    const fileSelectBtn = document.getElementById("fileSelectBtn");
+    const fileNameDisplay = document.getElementById("fileNameDisplay");
+    fileInput.addEventListener("change", () => {
+      if (fileInput.files.length > 0) {
+        // ファイル名表示
+        fileNameDisplay.textContent = fileInput.files[0].name;
+
+        // ボタン無効化
+        fileSelectBtn.disabled = true;
+      } else {
+        // ファイル選択解除時はリセット
+        fileNameDisplay.textContent = "";
+        fileSelectBtn.disabled = false;
+      }
+    });
     async function loadMembers() {
       const response = await fetch('/api/members');
       const members = await response.json();
@@ -417,12 +434,13 @@
       
     }
     async function uploadFile() {
-      const fileInput = document.getElementById("fileInput");
-      const file = fileInput.files[0];
-      if (!file) return alert("ファイルを選んでください");
+      if (fileInput.files.length === 0) {
+        alert("ファイルを選んでください");
+        return;
+      }
 
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", fileInput.files[0]);
 
       const res = await fetch("/upload", {
         method: "POST",
@@ -430,12 +448,15 @@
       });
 
       if (res.ok) {
-        document.getElementById("fileInput").value = "";  // 初期化
-        loadMessages();  // チャット更新
+        // 送信成功したらリセット
+        fileInput.value = "";
+        fileNameDisplay.textContent = "";
+        fileSelectBtn.disabled = false;
+        await loadMessages();  // チャット更新
       } else {
         alert("アップロード失敗");
       }
-      }
+    }
       document.getElementById("logout").onclick = async () => {
         sendMessageToPython("ログアウト")
         const res = await fetch("/logout", { method: "POST"})
