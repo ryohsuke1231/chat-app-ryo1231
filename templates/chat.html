@@ -458,22 +458,6 @@
       return JSON.stringify(a) === JSON.stringify(b);
     }
 
-    // ここにJSコードを入れる（元のコードをそのまま使える）
-    /*
-    //async function update_info() {
-    userName = "{{ user }}";
-    
-    userEmail = "{{ email }}";
-    //if 
-      currentUser = {
-        name: userName,
-        icon: "{{ user_icon }}",
-        //iconUrl: "{{ url_for('serve_icon', filename=user_icon) }} if user_icon else url_for('static', filename='default.jpeg') }}"
-        
-      };
-    }
-      */
-
     let latestMessageId = 0;
     async function loadMessages() {
       const res2 = await fetch("/api/user-info");
@@ -502,18 +486,12 @@
         const side = isMine ? "right" : "left";
         const bubble = document.createElement("div");
         //bubble.className = `msg ${side}`;
-
-        // アイコン画像のURLを作る（ファイルが存在しない場合はデフォルトにするなど応用可）
-        //const iconUrl = /icons/${msg.icon || 'default.jpeg'};
-        //const iconUrl = msg.icon ? '/icons/' + msg.icon : '/static/default.jpeg';
         iconUrl = "before change"
         if (msg.icon_is_default) {
           iconUrl = '/static/default.jpeg';
         } else {
           iconUrl = `/icons/${msg.icon_filename}`;
         }
-        //sendMessageToPython(`アイコン：${iconUrl}`)
-        //const iconUrl = iconFilename;
         bubble.className = `msg ${side}`
         bubble.innerHTML = `
           <div class="msg-content">
