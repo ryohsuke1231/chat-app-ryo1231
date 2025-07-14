@@ -176,7 +176,7 @@
     }
 
     .left {
-      background-color: #dcdde1;
+      background-color: #808080
       float: left;
     }
 
@@ -309,6 +309,7 @@
     <thead>
       <tr>
         <th>アイコン</th>
+        <th data-sort="id">登録順</th>
         <th data-sort="name">名前</th>
         <th data-sort="last_comment_time">最終コメント</th>
       </tr>
@@ -334,6 +335,8 @@
     <img id="currentIconPreview" src="/static/default.jpeg" alt="現在のアイコン" height="64"><br><br>
     <label for="icon">アイコン画像 (指定しない場合は今のアイコンが使用されます):</label><br>
     <input type="file" name="icon" accept="image/*" id="iconInput"><br><br>
+    <button id="permission_notification" type="button">通知設定</button>
+    <button id="deny_notification" type="button">通知を拒否</button>
     <button id="logout" type="button">ログアウト</button>
     <button id="saveSettings" type="button">保存</button>
     <button id="closeSettings" type="button">キャンセル</button>
@@ -342,6 +345,7 @@
 
   <!-- JavaScript は元のままでOK -->
   <script>
+    notification_is_allowed = false;
     const fileInput = document.getElementById("fileInput");
     const fileSelectBtn = document.getElementById("fileSelectBtn");
     const fileNameDisplay = document.getElementById("fileNameDisplay");
@@ -405,6 +409,10 @@
       membersData.forEach(member => {
         const tr = document.createElement('tr');
 
+        const idTd = document.createElement('td');
+        idTd.textContent = member.id;
+        tr.appendChild(idTd);
+        
         const iconTd = document.createElement('td');
         const img = document.createElement('img');
         img.height = 32;
@@ -522,6 +530,14 @@
           latestMessageId = msg.id;
         }
         chat.appendChild(bubble);
+        if(notification_is_allowed === true){
+          if(msg.email !== userEmail){
+            new Notification("Chat App", body: {
+              body: `${msg.name}: ${msg.text}`,
+              icon: iconUrl
+            })
+          }
+        }
       });
 
       if (shouldScroll) {
@@ -629,6 +645,18 @@
       document.getElementById("closeSettings").onclick = () => {
         document.getElementById("settingsModal").style.display = "none";
       };
+
+    document.getElementById("permission_notification").onclick = async () => {
+      if (Notification.permission === "granted"){
+        alert("通知が許可されました");
+        sendMessageToPython("通知許可済み");
+        notification_is_allowed = true;
+      }else if (Notification.permission === "denied"){
+        alert("通知が拒否されました");
+        sendMessageToPython("通知拒否");
+        notification_is_allowed = true;
+      }
+    }
 
       document.getElementById("saveSettings").onclick = async () => {
         alert("プロフィールを更新します。");

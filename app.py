@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 import os
 #/from dotenv import load_dotenv
 import logging
-logging.getLogger('werkzeug').setLevel(logging.INFO)
+logging.getLogger('werkzeug').setLevel(logging.DEBUG)
 
 
 app = Flask(__name__)
@@ -19,9 +19,9 @@ app.secret_key = 'your_secret_key'
 UPLOAD_FOLDER = 'uploads'
 ICON_FOLDER = 'icons'
 TOKEN_EXPIRATION_MINUTES = 10
-#APP_PASSWORD = 'chatapp2024'  # アプリアクセス用パスワード
+APP_PASSWORD = 'hellodrone1231@yeah@gakuho_1B.students'  # アプリアクセス用パスワード
 #load_dotenv()
-APP_PASSWORD = os.getenv('APP_PASSWORD')
+#APP_PASSWORD = os.getenv('APP_PASSWORD')
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(ICON_FOLDER, exist_ok=True)
@@ -401,19 +401,21 @@ def user_info():
 
     with sqlite3.connect("chat.db") as db:
         db.row_factory = sqlite3.Row
-        user = db.execute("SELECT display_name, icon_filename, icon_is_default, email FROM users WHERE id = ?", (uid,)).fetchone()
+        user = db.execute("SELECT id, display_name, icon_filename, icon_is_default, email FROM users WHERE id = ?", (uid,)).fetchone()
         if not user:
             print("User not found")
             return jsonify({"error": "ユーザーが見つかりません"}), 404
         #print(f"User info fetched: {user['display_name']}, icon: {user['icon_filename']}, email: {user['email']}, is_default: {user['icon_is_default']}")
         return jsonify({
+            "id": user["id"],
+            "email": session["email"],
             "name": user["display_name"],
             "iconUrl": (
                 "/static/default.jpeg"
                 if user["icon_is_default"]
                 else f"/icons/{user['icon_filename']}"
             ),    
-            "email": user["email"],
+            
             "icon_is_default": user["icon_is_default"]
         })
 
@@ -428,7 +430,7 @@ def receive_message():
 @app.route("/api/members")
 def get_members():
     with sqlite3.connect("chat.db") as conn:
-        cur = conn.execute("SELECT display_name, icon_filename, icon_is_default, last_comment_time FROM users")
+        cur = conn.execute("SELECT id, display_name, icon_filename, icon_is_default, last_comment_time FROM users")
         members = [{"name": r[0], "icon": r[1], "icon_is_default": r[2], "last_comment_time": r[3]} for r in cur.fetchall()]
         for member in members:
             member["last_comment_time_readable"] = human_readable_time(member["last_comment_time"])
