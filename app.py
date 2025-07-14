@@ -408,7 +408,7 @@ def user_info():
         #print(f"User info fetched: {user['display_name']}, icon: {user['icon_filename']}, email: {user['email']}, is_default: {user['icon_is_default']}")
         return jsonify({
             "id": user["id"],
-            "email": session["email"],
+            "email": user["email"],
             "name": user["display_name"],
             "iconUrl": (
                 "/static/default.jpeg"
@@ -431,7 +431,7 @@ def receive_message():
 def get_members():
     with sqlite3.connect("chat.db") as conn:
         cur = conn.execute("SELECT id, display_name, icon_filename, icon_is_default, last_comment_time FROM users")
-        members = [{"name": r[0], "icon": r[1], "icon_is_default": r[2], "last_comment_time": r[3]} for r in cur.fetchall()]
+        members = [{"id": r[0], "name": r[1], "icon": r[2], "icon_is_default": r[3], "last_comment_time": r[4]} for r in cur.fetchall()]
         for member in members:
             member["last_comment_time_readable"] = human_readable_time(member["last_comment_time"])
         #conn.commit()

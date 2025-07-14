@@ -176,7 +176,7 @@
     }
 
     .left {
-      background-color: #808080
+      background-color: #808080;
       float: left;
     }
 
@@ -197,7 +197,7 @@
       gap: 6px;
     }
 
-    .right .header {
+    .msg.right .header {
       flex-direction: row-reverse;
       justify-content: flex-end;
     }
@@ -308,8 +308,8 @@
   <table id="members-table" border="1">
     <thead>
       <tr>
-        <th>アイコン</th>
         <th data-sort="id">登録順</th>
+        <th>アイコン</th>
         <th data-sort="name">名前</th>
         <th data-sort="last_comment_time">最終コメント</th>
       </tr>
@@ -345,7 +345,7 @@
 
   <!-- JavaScript は元のままでOK -->
   <script>
-    notification_is_allowed = false;
+    let notification_is_allowed = false;
     const fileInput = document.getElementById("fileInput");
     const fileSelectBtn = document.getElementById("fileSelectBtn");
     const fileNameDisplay = document.getElementById("fileNameDisplay");
@@ -410,7 +410,7 @@
         const tr = document.createElement('tr');
 
         const idTd = document.createElement('td');
-        idTd.textContent = member.id;
+        idTd.textContent = String(member.id);
         tr.appendChild(idTd);
         
         const iconTd = document.createElement('td');
@@ -475,9 +475,9 @@
         return;
       }
       const user = await res2.json();
-      userName = user.name;
-      userEmail = user.email;
-      currentUser = {
+      const userName = user.name;
+      const userEmail = user.email;
+      const currentUser = {
         name: userName,
         icon: user.icon,
         iconUrl: user.icon ? `/icons/${user.icon}` : '/static/default.jpeg',
@@ -518,7 +518,7 @@
           </div>
         `;
 
-        bubble.style.backgroundColor = isMine ? "#acf" : "#eee";
+        bubble.style.backgroundColor = isMine ? "#acf" : "#808080";
         bubble.style.color = isMine ? "#000" : "#333";
         bubble.style.borderRadius = "10px";
         bubble.style.padding = "8px";
@@ -532,10 +532,10 @@
         chat.appendChild(bubble);
         if(notification_is_allowed === true){
           if(msg.email !== userEmail){
-            new Notification("Chat App", body: {
+            new Notification("Chat App", {
               body: `${msg.name}: ${msg.text}`,
               icon: iconUrl
-            })
+            });
           }
         }
       });
@@ -604,9 +604,10 @@
     }
       document.getElementById("logout").onclick = async () => {
         sendMessageToPython("ログアウト")
-        const res = await fetch("/logout", { method: "POST"})
-        　.then(response => response.json())
-          .then(data => {
+          const res = await fetch("/logout", { method: "POST" });
+          const data = await res.json();
+
+          //.then(data => {
             if (data.status === "ok"){
               window.location.href = "/login";
               window.location.reload();
@@ -614,7 +615,7 @@
               alert("ログアウトに失敗しました。");
               sendMessageToPython("ログアウト失敗");
             }
-          })
+          
         
       };
       document.getElementById("settingsBtn").onclick = async () => {
@@ -646,7 +647,7 @@
         document.getElementById("settingsModal").style.display = "none";
       };
 
-    document.getElementById("permission_notification").onclick = async () => {
+    document.getElementById("deny_notification").onclick = async () => {
       if (Notification.permission === "granted"){
         alert("通知が許可されました");
         sendMessageToPython("通知許可済み");
@@ -654,7 +655,7 @@
       }else if (Notification.permission === "denied"){
         alert("通知が拒否されました");
         sendMessageToPython("通知拒否");
-        notification_is_allowed = true;
+        notification_is_allowed = false;
       }
     }
 
@@ -690,22 +691,20 @@
           const result = await res.json();
           if (result.success) {
             //window.location.href = "/chat";
-            alert("プロフィールの更新を完了するために、ログアウトします。")
+            alert("プロフィールの更新を完了するために、ログアウトします。");
             sendMessageToPython("ログアウト")
-            const res = await fetch("/logout", { method: "POST"})
-            .then(response => response.json())
-              .then(data => {
-                if (data.status === "ok"){
-                  loadMembers();
-                  window.location.href = "/login";
-                  window.location.reload();
-                }else{
-                  alert("ログアウトに失敗しました。");
-                  sendMessageToPython("ログアウト失敗");
-                }
-              })
+            const response = await fetch("/logout", { method: "POST" });
+            const data = await response.json();
 
-          } else {
+            if (data.status === "ok"){
+              loadMembers();
+              window.location.href = "/login";
+              window.location.reload();
+            }else{
+              alert("ログアウトに失敗しました。");
+              sendMessageToPython("ログアウト失敗");
+            }
+          }else {
             alert("プロフィールを更新できませんでした。");
             sendMessageToPython("プロフィール更新失敗");
           }
@@ -727,11 +726,11 @@
         });
 
         //document.getElementById("text").value = "";
-      }
+      };
 
       setInterval(loadMessages, 1000);
       loadMessages();
-      loadMembers();
+      //loadMembers();
 
     </script>
   </body>
