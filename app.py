@@ -5,9 +5,9 @@ from flask import (
 from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 import os
-from dotenv import load_dotenv
+#/from dotenv import load_dotenv
 import logging
 logging.getLogger('werkzeug').setLevel(logging.INFO)
 
@@ -46,7 +46,8 @@ def init_db():
                 display_name TEXT,
                 password TEXT,
                 icon_is_default INTEGER DEFAULT 1,
-                icon_filename TEXT DEFAULT NULL
+                icon_filename TEXT DEFAULT NULL,
+                last_comment_time INTEGER DEFAULT -1
             )
         ''')
         conn.execute('''
@@ -185,7 +186,8 @@ def upload():
     save_path = os.path.join(app.config['UPLOAD_FOLDER'], str(filename))
     file.save(save_path)
     #id = str(uuid.uuid4())
-    now = datetime.now().strftime("%H:%M")
+    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    now_sec = int(datetime.now(timezone.utc).timestamp())
     email = session['user']
     with sqlite3.connect("chat.db") as conn:
         cur = conn.execute("SELECT display_name FROM users WHERE email=?", (email,))
@@ -193,6 +195,8 @@ def upload():
         name = row[0] if row else "Unknown"
         conn.execute("INSERT INTO messages (name, text, time, read, email) VALUES (?, ?, ?, ?, ?)",
                      (name, f"[ファイル] {filename}", now, 0, email))
+        conn.execute('''
+        UPDATE users SET last_comment_time = ? WHERE email = ?''', (now_sec, email))
 
     return "Uploaded", 200
 
@@ -319,12 +323,35 @@ def send_message():
         name = row[0]
 
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        now_sec = int(datetime.now(timezone.utc).timestamp())
         conn.execute('''
             INSERT INTO messages (name, text, time, read, email)
             VALUES (?, ?, ?, 0, ?)
         ''', (name, text, now, email))
+        conn.execute('''
+            UPDATE users SET last_comment_time = ? WHERE email = ?''', (now_sec, email))
+        
     print(f"[送信メッセージ] {text}")  # ← ターミナルに出る
     return jsonify({"status": "ok", "message": text, "time": now})
+
+def human_readable_time(timestamp):
+    if timestamp == -1:
+        return "コメントなし"
+    now = int(datetime.now(timezone.utc).timestamp())
+    diff = now - timestamp
+    if diff < 60:
+        return "今"
+    elif diff < 3600:
+        return f"{diff // 60}分前"
+    elif diff < 86400:
+        return f"{diff // 3600}時間前"
+    elif diff < 2592000:
+        return f"{diff // 86400}日前"
+    elif diff < 31536000:
+        return f"{diff // 2592000}ヶ月前"
+    else:
+        return "ずっと前"
+
 
 # === メッセージ取得 ===
 @app.route('/messages')
@@ -401,8 +428,10 @@ def receive_message():
 @app.route("/api/members")
 def get_members():
     with sqlite3.connect("chat.db") as conn:
-        cur = conn.execute("SELECT display_name, icon_filename, icon_is_default FROM users")
-        members = [{"name": r[0], "icon": r[1], "icon_is_default": r[2]} for r in cur.fetchall()]
+        cur = conn.execute("SELECT display_name, icon_filename, icon_is_default, last_comment_time FROM users")
+        members = [{"name": r[0], "icon": r[1], "icon_is_default": r[2], "last_comment_time": r[3]} for r in cur.fetchall()]
+        for member in members:
+            member["last_comment_time_readable"] = human_readable_time(member["last_comment_time"])
         #conn.commit()
         return jsonify(members)
     

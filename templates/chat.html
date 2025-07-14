@@ -19,6 +19,72 @@
       justify-content: space-between;
       align-items: center;
     }
+    /* テーブル全体のスタイル */
+    #members-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 16px;
+      background-color: #ffffff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    /* ヘッダー行 */
+    #members-table thead {
+      background-color: #f5f5f5;
+    }
+
+    #members-table thead th {
+      padding: 12px;
+      text-align: left;
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+    }
+
+    /* 並び替えの矢印表示 */
+    #members-table thead th::after {
+      content: '';
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      margin-top: -6px;
+      border: 6px solid transparent;
+      border-top-color: #999;
+      opacity: 0.5;
+      transition: transform 0.2s;
+    }
+
+    #members-table thead th.sorted-asc::after {
+      transform: rotate(180deg);
+      opacity: 1;
+    }
+
+    #members-table thead th.sorted-desc::after {
+      transform: rotate(0deg);
+      opacity: 1;
+    }
+
+    /* 本体の行 */
+    #members-table tbody tr {
+      border-top: 1px solid #e0e0e0;
+    }
+
+    #members-table tbody td {
+      padding: 10px 12px;
+      vertical-align: middle;
+    }
+
+    /* アイコン画像 */
+    #members-table img.icon {
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      object-fit: cover;
+    }
+
 
     #settingsBtn {
       font-size: 1.2em;
@@ -238,11 +304,20 @@
     </div>
   </div>
 
-  <div id="sidebar">
-    <h3>メンバー</h3>
-    <ul id="members-list">
-    </ul>
-  </div>
+  <h3>メンバー</h3>
+  <table id="members-table" border="1">
+    <thead>
+      <tr>
+        <th>アイコン</th>
+        <th data-sort="name">名前</th>
+        <th data-sort="last_comment_time">最終コメント</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- JSでここに追加される -->
+    </tbody>
+  </table>
+
   
 
   <!-- モーダル（プロフィール設定） -->
@@ -285,33 +360,104 @@
         document.getElementById("fileSendBtn").disabled = true;
       }
     });
+    let membersData = [];  // グローバル変数に保存しておく
+    let currentSortKey = null;
+    let currentSortOrder = 'asc';
+
+    let previousMembersData = [];
     async function loadMembers() {
       const response = await fetch('/api/members');
       const members = await response.json();
+      //membersData = members;
+      if (!isEqual(members, previousMembersData)) {
+        membersData = members;
+        previousMembersData = members;  // 更新
+        renderMemberTable();
+      }
+    }
 
-      const list = document.getElementById('members-list');
-      list.innerHTML = '';  // 既存内容をクリア
+    function renderMemberTable() {
+      const table = document.getElementById('members-table');
+      const tbody = table.querySelector('tbody') || table.appendChild(document.createElement('tbody'));
+      tbody.innerHTML = '';
 
-      members.forEach(member => {
-        const li = document.createElement('li');
+      // 並べ替え処理
+      if (currentSortKey) {
+        membersData.sort((a, b) => {
+          let valA = a[currentSortKey];
+          let valB = b[currentSortKey];
 
+          // nullやundefined対策
+          if (valA === null || valA === undefined) valA = '';
+          if (valB === null || valB === undefined) valB = '';
+
+          if (typeof valA === 'string') {
+            valA = valA.toLowerCase();
+            valB = valB.toLowerCase();
+          }
+
+          if (valA < valB) return currentSortOrder === 'asc' ? -1 : 1;
+          if (valA > valB) return currentSortOrder === 'asc' ? 1 : -1;
+          return 0;
+        });
+      }
+
+      membersData.forEach(member => {
+        const tr = document.createElement('tr');
+
+        const iconTd = document.createElement('td');
         const img = document.createElement('img');
         img.height = 32;
         img.className = 'icon';
+        img.src = (member.icon_is_default === 0) ? `/icons/${member.icon}` : `/static/default.jpeg`;
+        iconTd.appendChild(img);
+        tr.appendChild(iconTd);
 
-        if (member.icon_is_default === 0) {
-          img.src = `/icons/${member.icon}`;  // 例: /icon/taro.jpeg
-        } else {
-          img.src = `/static/default.jpeg`;
-        }
+        const nameTd = document.createElement('td');
+        nameTd.textContent = member.name;
+        tr.appendChild(nameTd);
 
-        const nameText = document.createTextNode(' ' + member.name);
+        const lastTd = document.createElement('td');
+        lastTd.textContent = member.last_comment_time_readable || '---';
+        tr.appendChild(lastTd);
 
-        li.appendChild(img);
-        li.appendChild(nameText);
-        list.appendChild(li);
+        tbody.appendChild(tr);
       });
+      // ヘッダーのソートマーク更新
+      document.querySelectorAll('#members-table thead th').forEach(th => {
+        th.classList.remove('sorted-asc', 'sorted-desc');
+        if (th.getAttribute('data-sort') === currentSortKey) {
+          th.classList.add(currentSortOrder === 'asc' ? 'sorted-asc' : 'sorted-desc');
+        }
+      });
+
     }
+
+    // ソートのイベントハンドラ
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('#members-table thead th[data-sort]').forEach(th => {
+        th.style.cursor = 'pointer';
+        th.addEventListener('click', () => {
+          const sortKey = th.getAttribute('data-sort');
+
+          if (currentSortKey === sortKey) {
+            currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+          } else {
+            currentSortKey = sortKey;
+            currentSortOrder = 'asc';
+          }
+
+          renderMemberTable();
+        });
+      });
+
+      loadMembers();  // 初回ロード
+    });
+    // データ比較（簡易版：JSON文字列で比較）
+    function isEqual(a, b) {
+      return JSON.stringify(a) === JSON.stringify(b);
+    }
+
     // ここにJSコードを入れる（元のコードをそのまま使える）
     /*
     //async function update_info() {
@@ -403,6 +549,7 @@
       if (shouldScroll) {
         chat.scrollTop = chat.scrollHeight;
       }
+      loadMembers();
     }
 
     async function send() {
@@ -430,6 +577,7 @@
         document.getElementById("text").value = "";
         await loadMessages();
         sendMessageToPython("メッセージ送信成功: " + text);
+        loadMembers();
       }else {
         alert("メッセージの送信に失敗しました。");
         sendMessageToPython("メッセージ送信失敗");
