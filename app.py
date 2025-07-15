@@ -3,6 +3,7 @@ from flask import (
     url_for, session, jsonify, send_from_directory
 )
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 import sqlite3
 import uuid
 from datetime import datetime, timezone
@@ -19,9 +20,9 @@ app.secret_key = 'your_secret_key'
 UPLOAD_FOLDER = 'uploads'
 ICON_FOLDER = 'icons'
 TOKEN_EXPIRATION_MINUTES = 10
-#APP_PASSWORD = 'hellodrone1231@yeah@gakuho_1B.students'  # アプリアクセス用パスワード
+APP_PASSWORD = 'hellodrone1231@yeah@gakuho_1B.students'  # アプリアクセス用パスワード
 #load_dotenv()
-APP_PASSWORD = os.getenv('APP_PASSWORD')
+#APP_PASSWORD = os.getenv('APP_PASSWORD')
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(ICON_FOLDER, exist_ok=True)
@@ -265,6 +266,8 @@ def update_profile():
     email = session['user']
     new_name = request.form.get('name')
     icon = request.files.get('icon')
+    print(f"New name: {new_name}, New icon: {icon.filename if icon else 'None'}")
+    print("updating database...")
 
     with sqlite3.connect("chat.db") as conn:
         # 旧ユーザー情報を取得（古いアイコン削除のため）
@@ -282,15 +285,20 @@ def update_profile():
             update_values.append(new_name)
 
         if icon and icon.filename:
-            filename = f"{uuid.uuid4().hex}.png"
-            icon.save(os.path.join(app.config['ICON_FOLDER'], filename))
-
+            ext = os.path.splitext(secure_filename(icon.filename))[1]
+            filename = f"{uuid.uuid4().hex}{ext}"
+            save_path = os.path.join(app.config['ICON_FOLDER'], filename)
+            os.makedirs(app.config['ICON_FOLDER'], exist_ok=True)
+            icon.save(save_path)
+            
             # 古いアイコンがデフォルトでなければ削除
-            if old_icon_filename and not old_icon_is_default:
+            if not old_icon_is_default:
                 try:
                     os.remove(os.path.join(app.config['ICON_FOLDER'], old_icon_filename))
                 except FileNotFoundError:
                     pass  # ファイルが存在しない場合は無視
+                except Exception as e:
+                    print(f"Failed to delete old icon: {e}")
 
             update_fields.extend(["icon_filename=?", "icon_is_default=?"])
             update_values.extend([filename, 0])  # 0 = カスタムアイコン
@@ -382,15 +390,16 @@ def get_messages():
     #print(f"Fetched {len(messages)} messages")
     return jsonify(messages)
 # ログアウト
-@app.route('/logout', methods=['POST'])
+@app.route("/logout", methods=["POST"])
 def logout():
-    session.pop('user', None)
-    session.pop('app_authenticated', None)  # アプリ認証も解除
-    session.pop('uid', None)
     session.clear()
-    print("ログアウトしました。")
-    #return redirect(url_for('login'))
-    return jsonify({"status": "ok"})
+    resp = jsonify({"status": "ok"})
+    resp.set_cookie("session", "", expires=0)  # 👈 Cookieを強制削除
+    return resp
+
+@app.route("/login")
+def login_redirect():
+    return redirect("/")
 
 @app.route("/api/user-info")
 def user_info():
