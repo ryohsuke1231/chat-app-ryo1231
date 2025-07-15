@@ -392,6 +392,9 @@ def get_messages():
 # ログアウト
 @app.route("/logout", methods=["POST"])
 def logout():
+    session.pop("user", None)
+    session.pop("uid", None)
+    session.pop("app_authenticated", None)
     session.clear()
     resp = jsonify({"status": "ok"})
     resp.set_cookie("session", "", expires=0)  # 👈 Cookieを強制削除
@@ -447,5 +450,5 @@ def get_members():
         return jsonify(members)
     
 
-if __name__ == '__main__':
-    app.run(debug=True)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
