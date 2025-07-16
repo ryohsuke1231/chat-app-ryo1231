@@ -101,6 +101,7 @@ def register():
         confirm_password = request.form.get('confirm_password')
         display_name = request.form.get('display_name')
         icon = request.files.get('icon')
+        print(f"email: {email}, password: {password}, confirm_password: {confirm_password}, display_name: {display_name}, icon: {icon.filename if icon else 'None'}")
 
         if not email or not password or not display_name:
             return render_template('register.html', error="すべての項目を入力してください。")
