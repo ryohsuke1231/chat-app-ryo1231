@@ -31,6 +31,8 @@ os.makedirs(ICON_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['ICON_FOLDER'] = ICON_FOLDER
 
+JST = timezone(timedelta(hours=9))  # UTC+9（日本時間）
+
 # === データベース初期化 ===
 def init_db():
     with sqlite3.connect("chat.db") as conn:
@@ -332,8 +334,8 @@ def send_message():
         row = cur.fetchone()
         name = row[0]
 
-        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        now_sec = int(datetime.now(timezone.utc).timestamp())
+        now = datetime.now(JST).strftime('%Y-%m-%d %H:%M:%S')
+        now_sec = int(datetime.now(JST).timestamp())
         conn.execute('''
             INSERT INTO messages (name, text, time, read, email)
             VALUES (?, ?, ?, 0, ?)
@@ -347,7 +349,7 @@ def send_message():
 def human_readable_time(timestamp):
     if timestamp == -1:
         return "コメントなし"
-    now = int(datetime.now(timezone.utc).timestamp())
+    now = int(datetime.now(JST).timestamp())
     diff = now - timestamp
     if diff < 60:
         return "今"

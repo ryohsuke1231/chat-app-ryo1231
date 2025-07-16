@@ -11,14 +11,49 @@
       padding: 0;
     }
 
-    header {
-      background-color: #2f3640;
-      color: white;
-      padding: 10px 20px;
-      display: flex;
-      justify-content: space-between;
+    .custom-dialog {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(0, 0, 0, 0.4);
+      justify-content: center;
       align-items: center;
+      z-index: 9999;
     }
+
+    .custom-dialog-content {
+      background: #fff;
+      padding: 20px 30px;
+      border-radius: 8px;
+      max-width: 90%;
+      min-width: 250px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+      text-align: center;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .custom-dialog-buttons {
+      margin-top: 20px;
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .custom-dialog-buttons button {
+      margin: 5px;
+      padding: 8px 16px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .custom-dialog-buttons button:hover {
+      background-color: #0056b3;
+    }
+
     /* テーブル全体のスタイル */
     #members-table {
       width: 100%;
@@ -340,6 +375,13 @@
     <button id="saveSettings" type="button">保存</button>
     <button id="closeSettings" type="button">キャンセル</button>
   </div>
+  <div id="customDialog" class="custom-dialog">
+    <div class="custom-dialog-content">
+      <p id="customDialogMessage">ここにメッセージ</p>
+      <div id="customDialogButtons" class="custom-dialog-buttons"></div>
+    </div>
+  </div>
+
 </body>
 
   <!-- JavaScript は元のままでOK -->
@@ -360,8 +402,27 @@
         body: JSON.stringify({ text: "[JS Error] " + JSON.stringify(errorMessage) })
       });
     };
-    
-    
+    function showDialog(message, options) {
+      const dialog = document.getElementById("customDialog");
+      const messageElement = document.getElementById("customDialogMessage");
+      const buttonsContainer = document.getElementById("customDialogButtons");
+
+      messageElement.textContent = message;
+      buttonsContainer.innerHTML = ""; // 既存ボタン削除
+
+      options.forEach(option => {
+        const btn = document.createElement("button");
+        btn.textContent = option.text;
+        btn.onclick = () => {
+          dialog.style.display = "none";
+          option.action?.();
+        };
+        buttonsContainer.appendChild(btn);
+      });
+
+      dialog.style.display = "flex";
+    }
+
     let notification_is_allowed = false;
     const fileInput = document.getElementById("fileInput");
     const fileSelectBtn = document.getElementById("fileSelectBtn");
@@ -487,7 +548,11 @@
     async function loadMessages() {
       const res2 = await fetch("/api/user-info");
       if (!res2.ok) {
-        alert("ユーザー情報の取得に失敗しました。");
+        //alert("ユーザー情報の取得に失敗しました。");
+        showAlert("ユーザー情報の取得に失敗しました。", [
+          {text: "再試行", action: loadMessages},
+          {text: "ログアウト", action: logout}
+        ])
         sendMessageToPython("ユーザー情報取得失敗");
         return;
       }
@@ -572,7 +637,11 @@
       if (text.length > 1000) return alert("メッセージは1000文字以内で入力してください");
       const res = await fetch("api/user-info");
         if(!res.ok) {
-          alert("ユーザー情報の取得に失敗しました。");
+          //alert("ユーザー情報の取得に失敗しました。");
+          showAlert("ユーザー情報の取得に失敗しました。", [
+            {text: "再試行", action: loadMessages},
+            {text: "ログアウト", action: logout}
+          ])
           sendMessageToPython("ユーザー情報取得失敗");
           return;
         }
@@ -763,6 +832,15 @@
 
       //document.getElementById("text").value = "";
     };
+    async function logout() {
+      sendMessageToPython("ログアウト")
+      const res = await fetch("/logout", { method: "POST" });
+      const data = await res.json();
+      if (data.status === "ok"){
+        window.location.href = "/login";
+        //window.location.reload();
+      }
+    }
 
     setInterval(loadMessages, 1000);
     loadMessages();
