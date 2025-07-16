@@ -21,8 +21,9 @@ UPLOAD_FOLDER = 'uploads'
 ICON_FOLDER = 'icons'
 TOKEN_EXPIRATION_MINUTES = 10
 #APP_PASSWORD = 'hellodrone1231@yeah@gakuho_1B.students'  # アプリアクセス用パスワード
+APP_PASSWORD = 'gakuho_j.1B.students'
 #load_dotenv()
-APP_PASSWORD = os.getenv('APP_PASSWORD')
+#APP_PASSWORD = os.getenv('APP_PASSWORD')
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(ICON_FOLDER, exist_ok=True)
