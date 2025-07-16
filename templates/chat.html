@@ -10,14 +10,6 @@
       margin: 0;
       padding: 0;
     }
-    .header .html {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 20px;
-      background-color: #3498db;
-      color: white;
-    }
 
     .custom-dialog {
       display: none;
@@ -128,15 +120,6 @@
       object-fit: cover;
     }
 
-
-    #settingsBtn {
-      font-size: 1.2em;
-      background: none;
-      border: none;
-      color: white;
-      cursor: pointer;
-    }
-
     #container {
       display: flex;
       height: calc(100vh - 50px);
@@ -234,10 +217,36 @@
       flex-direction: column;
     }
 
-    .header {
+    header {
       display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 6px;
+      background-color: #0984e3; /* 青 */
+      color: white;
+      padding: 10px 20px;
+    }
+
+    header h2, header p {
+      margin: 0;
+    }
+
+    header h2 {
+      font-size: 1.2em;
+    }
+
+    header p {
+      font-size: 0.9em;
+    }
+
+    #settingsBtn {
+      font-size: 1.5em;
+      background: none;
+      border: none;
+      color: white;
+      cursor: pointer;
+    }
+    #settingsBtn:hover {
+      color: #dfe6e9;
     }
 
     .msg.right .header {
