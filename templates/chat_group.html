@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>チャットルーム</title>
+  <style>
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background: #f5f6fa;
+      margin: 0;
+      padding: 0;
+    }
+
+    .custom-dialog {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(0, 0, 0, 0.4);
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+
+    .custom-dialog-content {
+      background: #fff;
+      padding: 20px 30px;
+      border-radius: 8px;
+      max-width: 90%;
+      min-width: 250px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+      text-align: center;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .custom-dialog-buttons {
+      margin-top: 20px;
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .custom-dialog-buttons button {
+      margin: 5px;
+      padding: 8px 16px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .custom-dialog-buttons button:hover {
+      background-color: #0056b3;
+    }
+
+    #container {
+      display: flex;
+      height: calc(100vh - 50px); /* ヘッダー分を引いた高さ */
+    }
+
+    #groupSidebar {
+      flex: 0 0 250px;
+      background-color: #fdfdfd;
+      padding: 20px;
+      border-right: 1px solid #ccc;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    #groupSidebar h3 {
+      margin-top: 0;
+    }
+
+    #groupList {
+      list-style-type: none;
+      padding: 0;
+      flex-grow: 1;
+      overflow-y: auto;
+      margin-bottom: 20px;
+    }
+
+    #groupList li {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    #groupList li:hover {
+      background-color: #f1f1f1;
+    }
+
+    #groupActions button {
+      width: 100%;
+      margin-bottom: 10px;
+    }
+
+
+    #emptyState {
+      text-align: center;
+      padding: 50px 20px;
+      color: #555;
+    }
+
+    #emptyState h2 {
+      font-size: 1.5em;
+      margin-bottom: 10px;
+    }
+
+    #emptyState p {
+      font-size: 1em;
+      margin-bottom: 20px;
+    }
+
+    #emptyState button {
+      margin: 0 10px;
+      padding: 10px 18px;
+      font-size: 1em;
+      border-radius: 6px;
+      border: none;
+      background-color: #0984e3;
+      color: white;
+      cursor: pointer;
+    }
+
+    #emptyState button:hover {
+      background-color: #74b9ff;
+    }
+
+
+    /* テーブル全体のスタイル */
+    #members-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 16px;
+      background-color: #ffffff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    /* ヘッダー行 */
+    #members-table thead {
+      background-color: #f5f5f5;
+    }
+
+    #members-table thead th {
+      padding: 12px;
+      text-align: left;
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+    }
+
+    /* 並び替えの矢印表示 */
+    #members-table thead th::after {
+      content: '';
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      margin-top: -6px;
+      border: 6px solid transparent;
+      border-top-color: #999;
+      opacity: 0.5;
+      transition: transform 0.2s;
+    }
+
+    #members-table thead th.sorted-asc::after {
+      transform: rotate(180deg);
+      opacity: 1;
+    }
+
+    #members-table thead th.sorted-desc::after {
+      transform: rotate(0deg);
+      opacity: 1;
+    }
+
+    /* 本体の行 */
+    #members-table tbody tr {
+      border-top: 1px solid #e0e0e0;
+    }
+
+    #members-table tbody td {
+      padding: 10px 12px;
+      vertical-align: middle;
+    }
+
+    /* アイコン画像 */
+    #members-table img.icon {
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      object-fit: cover;
+    }
+
+    #container {
+      display: flex;
+      height: calc(100vh - 50px);
+    }
+
+    #main {
+      flex: 3;
+      /*padding: 0;*/
+      height: 100%;
+      background: white;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #chat {
+      flex: 1;
+      border: 1px solid #ccc;
+      padding: 10px;
+      overflow-y: auto;
+      margin-bottom: 0;
+      margin: 0 20px 0 20px;
+      background-color: #ecf0f1;
+    }
+
+    #inputArea {
+      display: flex;
+      padding: 10px 20px;
+      background-color: #fdfdfd;
+      border-top: 1px solid #ccc;
+      margin: 0 20px 20px 20px;
+      gap: 10px;
+      align-items: center;
+      position: sticky;
+      bottom: 0;
+      z-index: 100;
+      padding: 12px 20px;
+    }
+    #inputArea input[type="text"] {
+      flex: 1;
+      padding: 10px 20px;
+      border: 1px solid #ccc;
+      border-radius: 20px;
+      font-size: 1em;
+      background-color: #f9f9f9;
+      transition: border-color 0.2s;
+      outline: none;
+    }
+    #inputArea input[type="text"]:focus {
+      border-color: #74b9ff;
+      background-color: #fff;
+    }
+    #inputArea button, .file-btn {
+      padding: 8px 12px;
+      border: none;
+      border-radius: 20px;
+      background-color: #0984e3;
+      color: white;
+      cursor: pointer;
+      font-size: 1em;
+      transition: background-color 0.2s;
+    }
+    #inputArea button:hover, .file-btn:hover {
+      background-color: #74b9ff;
+    }
+    .file-btn {
+      background-color: #dfe6e9;
+      color: #2d3436;
+      align-items: center;
+      justify-content: center;
+      display: flex;
+    }
+
+    .msg {
+      max-width: 60%;
+      margin: 5px;
+      padding: 10px;
+      border-radius: 10px;
+      clear: both;
+      position: relative;
+    }
+
+    .left {
+      background-color: #999999;
+      float: left;
+    }
+
+    .right {
+      background-color: #aed581;
+      float: right;
+      text-align: right;
+    }
+
+    .msg-content {
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #0984e3; /* 青 */
+      color: white;
+      padding: 10px 20px;
+    }
+
+    header h2, header p {
+      margin: 0;
+    }
+
+    header h2 {
+      font-size: 1.2em;
+    }
+
+    header p {
+      font-size: 0.9em;
+    }
+
+    #settingsBtn {
+      font-size: 1.5em;
+      background: none;
+      border: none;
+      color: white;
+      cursor: pointer;
+    }
+    #settingsBtn:hover {
+      color: #dfe6e9;
+    }
+
+    .msg.right .header {
+      flex-direction: row-reverse;
+      justify-content: flex-end;
+    }
+
+    .text {
+      margin-top: 5px;
+      word-break: break-word;
+    }
+
+    .meta {
+      font-size: 0.8em;
+      color: #555;
+      margin-top: 4px;
+    }
+
+    .icon {
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+    }
+
+    #sidebar {
+      flex: 1;
+      background-color: #fdfdfd;
+      padding: 20px;
+      border-left: 1px solid #ccc;
+      overflow-y: auto;
+    }
+
+    #sidebar h3 {
+      margin-top: 0;
+    }
+
+    #sidebar ul {
+      list-style-type: none;
+      padding: 0;
+    }
+
+    #sidebar li {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    input[type="text"],
+    input[type="file"] {
+      padding: 8px;
+      margin-right: 10px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      padding: 8px 14px;
+      border: none;
+      border-radius: 5px;
+      background-color: #0984e3;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #74b9ff;
+    }
+
+    .modal {
+      position: absolute;
+      top: 20%;
+      left: 50%;
+      transform: translate(-50%, -20%);
+      background-color: white;
+      border: 1px solid #ccc;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      min-width: 300px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h2 id="welcomeMessage">ようこそ {{ user }} さん！</h2>
+    <p>フィードバックはz704626b@fcs.ed.jpまで</p>
+    <button id="settingsBtn">⚙️</button>
+  </header>
+
+    <!-- チャット本体 -->
+  <div id="container">
+    <div id="groupSidebar">
+      <h3>グループ一覧</h3>
+      <ul id="groupList">
+        <!-- JavaScriptでグループをここに追加 -->
+      </ul>
+      <div id="groupActions">
+        <button onclick="create_group()">＋ 新規作成</button>
+        <button onclick="join_group()">グループに参加</button>
+      </div>
+    </div>
+
+    <div id="main">
+      <!-- グループ未選択時の案内エリア -->
+      <div id="emptyState" style="text-align:center; margin-top: 40px;">
+        <h2>グループに参加して友達とチャットしましょう！</h2>
+        <p>下のボタンからグループを作成、または参加してください。</p>
+        <button onclick="create_group()">グループ新規作成</button>
+        <button onclick="join_group()">グループに参加</button>
+      </div>
+
+      <div id="chat"></div>
+
+      <!-- 送信エリア -->
+      <div id="inputArea">
+        <input id="text" placeholder="メッセージを入力..." />
+        <button type="button" class="file-btn" id="fileSelectBtn" onclick="document.getElementById('fileInput').click();">ファイルを追加</button>
+        <input type="file" id="fileInput" style="display: none;" />
+        <span id="fileNameDisplay" style="margin-left: 10px; font-weight: bold;"></span>
+        <button id="sendBtn" onclick="send()">送信</button>
+        <button id="fileSendBtn" onclick="uploadFile()" disabled>ファイル送信</button>
+      </div>
+    </div>
+  </div>
+
+  <h3>メンバー</h3>
+  <table id="members-table" border="1">
+    <thead>
+      <tr>
+        <th data-sort="id">登録順</th>
+        <th>アイコン</th>
+        <th data-sort="name">名前</th>
+        <th data-sort="last_comment_time">最終コメント</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- JSでここに追加される -->
+    </tbody>
+  </table>
+
+  <!-- モーダル（プロフィール設定） -->
+  <div id="settingsModal" class="modal" style="display: none;">
+    <h3>プロフィール設定</h3>
+    <label>表示名:<br>
+      <input type="text" id="displayNameInput">
+    <!--<label>メールアドレス:<br>-->
+      <!--<input type="text" id="emailInput" value="{{ email }}">-->
+    <!--<label>パスワード<br>-->
+      <!--<input type="password" id="passwordInput" placeholder="新しいパスワードを入力">-->
+    </label><br><br>
+    <label>現在のアイコン:</label><br>
+    <img id="currentIconPreview" src="/static/default.jpeg" alt="現在のアイコン" height="64"><br><br>
+    <label for="icon">アイコン画像 (指定しない場合は今のアイコンが使用されます):</label><br>
+    <input type="file" name="icon" accept="image/*" id="iconInput"><br><br>
+    <button id="permission_notification" type="button">通知設定</button>
+    <button id="logout" type="button">ログアウト</button>
+    <button id="saveSettings" type="button">保存</button>
+    <button id="closeSettings" type="button">キャンセル</button>
+  </div>
+  <div id="customDialog" class="custom-dialog">
+    <div class="custom-dialog-content">
+      <p id="customDialogMessage">ここにメッセージ</p>
+      <div id="customDialogButtons" class="custom-dialog-buttons"></div>
+    </div>
+  </div>
+
+</body>
+
+  <!-- JavaScript は元のままでOK -->
+  <script>
+    
+    window.onerror = function (message, source, lineno, colno, error) {
+      const errorMessage = {
+        message: message,
+        source: source,
+        line: lineno,
+        column: colno,
+        stack: error && error.stack ? error.stack : "no stack"
+      };
+
+      fetch("/send_debug", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: "[JS Error] " + JSON.stringify(errorMessage) })
+      });
+    };
+
+    window.onload = function () {
+      // グループに未参加であれば emptyState を表示
+      showEmptyState();
+    };
+
+    function showEmptyState() {
+      document.getElementById("emptyState").style.display = "block";
+      document.getElementById("chat").style.display = "none";
+      document.getElementById("inputArea").style.display = "none";
+    }
+
+    function showChatUI() {
+      document.getElementById("emptyState").style.display = "none";
+      document.getElementById("chat").style.display = "block";
+      document.getElementById("inputArea").style.display = "flex";
+    }
+
+    function renderGroupList(groups) {
+      const groupList = document.getElementById('groupList');
+      groupList.innerHTML = '';  // 一度クリア
+
+      groups.forEach(group => {
+        const li = document.createElement('li');
+        li.textContent = group.name;
+        li.style.cursor = 'pointer';
+        li.onclick = () => {
+          selectGroup(group.id, group.name);
+        };
+        groupList.appendChild(li);
+      });
+    }
+
+    let currentGroupId = null;
+    let isGroupSelected = false;
+
+    function selectGroup(group_id, group_name) {
+      currentGroupId = group_id;
+
+      document.getElementById("welcomeMessage").textContent = `「${group_name}」グループでチャット中`;
+      showChatUI();
+      isGroupSelected = true;
+      loadMessages(group_id);  // ← Flaskからそのグループのメッセージを取得する関数
+    }
+
+    async function loadGroups() {
+      sendMessageToPython("¥n¥nloadGroups!!!!!!!!!")
+      const response = await fetch('/get_groups');
+      const data = await response.json();
+      renderGroupList(data.groups);
+
+      if (data.groups.length === 0) {
+        showEmptyState();  // グループ未参加
+      }
+    }
+
+    async function create_group() {
+      const groupName = prompt("新しいグループ名を入力してください:");
+      if (!groupName) return;
+
+      try {
+        const res = await fetch("/create_group", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ group_name: groupName })
+        });
+
+        const data = await res.json();
+        if (data.status === "ok") {
+          alert(`グループ「${groupName}」を作成しました！`);
+          alert(`グループID: ${data.group_id} (このIDで他のユーザーに招待してください)`)
+
+          // グループリスト再取得など
+          const res2 = await fetch ("/join_group", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ group_id: data.group_id })
+          })
+          const data2 = await res2.json();
+          if (data2.status === "ok"){
+            alert(`グループ「${data2.group_name}」に参加しました！`)
+          } else {
+            alert(`グループ「${data2.group_name}」に参加できませんでした`)
+            throw new error("グループ参加失敗")
+            
+          }
+          loadGroups();
+          selectGroup(data.group_id, groupName);
+        } else {
+          alert("グループ作成に失敗しました: " + data.message);
+        }
+      } catch (err) {
+        console.error(err);
+        alert("エラーが発生しました");
+        sendMessageToPython("グループ作成エラー");
+        const res = await fetch("/clean_broken_group", {
+          method: "POST"
+        })
+        data = await res.json();
+        if (data.status === "ok"){
+          alert("不完全なグループを削除しました")
+        }
+      }
+    }
+
+    async function join_group() {
+      const groupId = prompt("参加したいグループのIDを入力してください:");
+      if (!groupId) return;
+
+      try {
+        const res = await fetch("/join_group", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ group_id: groupId })
+        });
+
+        const data = await res.json();
+        if (data.status === "ok") {
+          alert(`グループ「${data.group_name}に参加しました！`);
+          // グループリスト再取得など
+          loadGroups();
+          selectGroup(data.group_id, data.group_name);
+        } else {
+          alert("参加に失敗しました: " + data.message);
+        }
+      } catch (err) {
+        console.error(err);
+        alert("エラーが発生しました");
+      }
+    }
+
+    
+    function showDialog(message, options) {
+      const dialog = document.getElementById("customDialog");
+      const messageElement = document.getElementById("customDialogMessage");
+      const buttonsContainer = document.getElementById("customDialogButtons");
+
+      messageElement.textContent = message;
+      buttonsContainer.innerHTML = ""; // 既存ボタン削除
+
+      options.forEach(option => {
+        const btn = document.createElement("button");
+        btn.textContent = option.text;
+        btn.onclick = () => {
+          dialog.style.display = "none";
+          option.action?.();
+        };
+        buttonsContainer.appendChild(btn);
+      });
+
+      dialog.style.display = "flex";
+    }
+
+    let notification_is_allowed = false;
+    const fileInput = document.getElementById("fileInput");
+    const fileSelectBtn = document.getElementById("fileSelectBtn");
+    const fileNameDisplay = document.getElementById("fileNameDisplay");
+    fileInput.addEventListener("change", () => {
+      if (fileInput.files.length > 0) {
+        // ファイル名表示
+        fileNameDisplay.textContent = fileInput.files[0].name;
+
+        // ボタン無効化
+        fileSelectBtn.disabled = true;
+        document.getElementById("fileSendBtn").disabled = false;
+      } else {
+        // ファイル選択解除時はリセット
+        fileNameDisplay.textContent = "";
+        fileSelectBtn.disabled = false;
+        document.getElementById("fileSendBtn").disabled = true;
+      }
+    });
+    let membersData = [];  // グローバル変数に保存しておく
+    let currentSortKey = null;
+    let currentSortOrder = 'asc';
+
+    let previousMembersData = [];
+    async function loadMembers(group_id) {
+      if (isGroupSelected === false) {
+        return;
+      }
+      const response = await fetch(`/api/members/${group_id}`);
+      const members = await response.json();
+      //membersData = members;
+      if (!isEqual(members, previousMembersData)) {
+        membersData = members;
+        previousMembersData = members;  // 更新
+        renderMemberTable();
+      }
+    }
+
+    function renderMemberTable() {
+      const table = document.getElementById('members-table');
+      const tbody = table.querySelector('tbody') || table.appendChild(document.createElement('tbody'));
+      tbody.innerHTML = '';
+
+      // 並べ替え処理
+      if (currentSortKey) {
+        membersData.sort((a, b) => {
+          let valA = a[currentSortKey];
+          let valB = b[currentSortKey];
+
+          // nullやundefined対策
+          if (valA === null || valA === undefined) valA = '';
+          if (valB === null || valB === undefined) valB = '';
+
+          if (typeof valA === 'string') {
+            valA = valA.toLowerCase();
+            valB = valB.toLowerCase();
+          }
+
+          if (valA < valB) return currentSortOrder === 'asc' ? -1 : 1;
+          if (valA > valB) return currentSortOrder === 'asc' ? 1 : -1;
+          return 0;
+        });
+      }
+
+      membersData.forEach(member => {
+        const tr = document.createElement('tr');
+
+        const idTd = document.createElement('td');
+        idTd.textContent = String(member.id);
+        tr.appendChild(idTd);
+        
+        const iconTd = document.createElement('td');
+        const img = document.createElement('img');
+        img.height = 32;
+        img.className = 'icon';
+        img.src = (member.icon_is_default === 0) ? `/icons/${member.icon}` : `/static/default.jpeg`;
+        iconTd.appendChild(img);
+        tr.appendChild(iconTd);
+
+        const nameTd = document.createElement('td');
+        nameTd.textContent = member.name;
+        tr.appendChild(nameTd);
+
+        const lastTd = document.createElement('td');
+        lastTd.textContent = member.last_comment_time_readable || '---';
+        tr.appendChild(lastTd);
+
+        tbody.appendChild(tr);
+      });
+      // ヘッダーのソートマーク更新
+      document.querySelectorAll('#members-table thead th').forEach(th => {
+        th.classList.remove('sorted-asc', 'sorted-desc');
+        if (th.getAttribute('data-sort') === currentSortKey) {
+          th.classList.add(currentSortOrder === 'asc' ? 'sorted-asc' : 'sorted-desc');
+        }
+      });
+
+    }
+
+    // ソートのイベントハンドラ
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('#members-table thead th[data-sort]').forEach(th => {
+        th.style.cursor = 'pointer';
+        th.addEventListener('click', () => {
+          const sortKey = th.getAttribute('data-sort');
+
+          if (currentSortKey === sortKey) {
+            currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+          } else {
+            currentSortKey = sortKey;
+            currentSortOrder = 'asc';
+          }
+
+          renderMemberTable();
+        });
+      });
+
+      loadMembers(currentGroupId);  // 初回ロード
+    });
+    // データ比較（簡易版：JSON文字列で比較）
+    function isEqual(a, b) {
+      return JSON.stringify(a) === JSON.stringify(b);
+    }
+
+    let latestMessageId = 0;
+    async function loadMessages(groupId) {
+      if (isGroupSelected === false){
+        return;
+      }
+      const res2 = await fetch("/api/user-info");
+      if (!res2.ok) {
+        //alert("ユーザー情報の取得に失敗しました。");
+        showDialog("ユーザー情報の取得に失敗しました。", [
+          {text: "再試行", action: () => loadMessages(currentGroupId)},
+          {text: "ログアウト", action: logout}
+        ])
+        sendMessageToPython("ユーザー情報取得失敗");
+        return;
+      }
+      const user = await res2.json();
+      const userName = user.name;
+      const userEmail = user.email;
+      const currentUser = {
+        name: userName,
+        icon: user.icon,
+        iconUrl: user.icon ? `/icons/${user.icon}` : '/static/default.jpeg',
+      };
+      const res = await fetch(`/chat/${groupId}`);
+      const data = await res.json();
+      const chat = document.getElementById("chat");
+      //chat.innerHTML = "";
+      const file_secret_key = data.file_secret_key;
+      let shouldScroll = chat.scrollTop + chat.clientHeight >= chat.scrollHeight - 10;
+
+      data.forEach(msg => {
+        if (msg.id <= latestMessageId) return;  // すでに表示済みならスキップ
+        const isMine = msg.email === userEmail;
+        const side = isMine ? "right" : "left";
+        const bubble = document.createElement("div");
+        //bubble.className = `msg ${side}`;
+        iconUrl = "before change"
+        if (msg.icon_is_default) {
+          iconUrl = '/static/default.jpeg';
+        } else {
+          iconUrl = `/icons/${msg.icon_filename}`;
+        }
+        bubble.className = `msg ${side}`
+        bubble.innerHTML = `
+          <div class="msg-content">
+            <div class="bubble">
+              <div class="header">
+                <img src=${iconUrl} class="icon" height="24" />
+                <strong>${msg.name}</strong>
+              </div>
+              <div class="text">
+                ${msg.text.startsWith(file_secret_key)
+                  ? `<a href="/files/${msg.text.replace(file_secret_key, "")}" target="_blank">${msg.text.replace(file_secret_key, "")}</a>`
+                  : msg.text}
+              </div>
+              <div class="meta">${msg.time}</div>
+            </div>
+          </div>
+        `;
+
+        //bubble.style.backgroundColor = isMine ? "#acf" : "#808080";
+        //bubble.style.color = isMine ? "#000" : "#333";
+        bubble.style.borderRadius = "10px";
+        bubble.style.padding = "8px";
+        bubble.style.margin = "5px";
+        bubble.style.clear = "both";
+        bubble.style.position = "relative";
+    
+        if (msg.id > latestMessageId) {
+          latestMessageId = msg.id;
+        }
+        chat.appendChild(bubble);
+        if(notification_is_allowed === true){
+          if(msg.email !== userEmail){
+            new Notification("Chat App", {
+              body: `${msg.name}: ${msg.text}`,
+              icon: iconUrl
+            });
+          }
+        }
+      });
+
+      if (shouldScroll) {
+        chat.scrollTop = chat.scrollHeight;
+      }
+      loadMembers(currentGroupId);
+    }
+
+    async function send() {
+      if (isGroupSelected === false){
+        return;
+      }
+      const text = document.getElementById("text").value;
+      //alert("メッセージを送信します: " + text)
+      sendMessageToPython("メッセージ送信: " + text);
+      if (!text) return alert("メッセージを入力してください");
+      if (!text.trim()) return;
+      if (text.length > 1000) return alert("メッセージは1000文字以内で入力してください");
+      const res = await fetch("api/user-info");
+        if(!res.ok) {
+          //alert("ユーザー情報の取得に失敗しました。");
+          showDialog("ユーザー情報の取得に失敗しました。", [
+            {text: "再試行", action: () => loadMessages(currentGroupId)},
+            {text: "ログアウト", action: logout}
+          ])
+          sendMessageToPython("ユーザー情報取得失敗");
+          return;
+        }
+        const user = await res.json();
+
+      const res2 = await fetch("/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: user.name, text: text, group_id: currentGroupId})
+      });
+      //sendMessageToPython("メッセージ送信: " + text);
+      const data = await res2.json()
+      if(data.status === "ok"){
+        document.getElementById("text").value = "";
+        await loadMessages(currentGroupId);
+        sendMessageToPython("メッセージ送信成功: " + text);
+        loadMembers(currentGroupId);
+      }else {
+        alert("メッセージの送信に失敗しました。¥nエラーメッセージ：" + data.message);
+        sendMessageToPython("メッセージ送信失敗");
+      }
+      
+    }
+    async function uploadFile() {
+      if (isGroupSelected === false){
+        return;
+      }
+      if (fileInput.files.length === 0) {
+        alert("ファイルを選んでください");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", fileInput.files[0]);
+      formData.append("group_id", currentGroupId)
+
+      const res = await fetch("/upload", {
+        method: "POST",
+        body: formData
+      });
+
+      if (res.ok) {
+        // 送信成功したらリセット
+        fileInput.value = "";
+        fileNameDisplay.textContent = "";
+        fileSelectBtn.disabled = false;
+        await loadMessages(currentGroupId);  // チャット更新
+      } else {
+        alert("アップロード失敗");
+      }
+    }
+    document.getElementById("logout").onclick = async () => {
+      sendMessageToPython("ログアウト")
+        const res = await fetch("/logout", { method: "POST" });
+        const data = await res.json();
+
+        //.then(data => {
+          if (data.status === "ok"){
+            window.location.href = "/login";
+            //window.location.reload();
+          }else{
+            alert("ログアウトに失敗しました。");
+            sendMessageToPython("ログアウト失敗");
+          }
+          
+        
+    };
+    document.getElementById("settingsBtn").onclick = async () => {
+      // モーダルを開く
+      document.getElementById("settingsModal").style.display = "block";
+      // 現在のユーザー情報を取得
+      const res = await fetch("api/user-info");
+      if(!res.ok) {
+        alert("ユーザー情報の取得に失敗しました。");
+        sendMessageToPython("ユーザー情報取得失敗");
+        return;
+      }
+      const user = await res.json();
+
+
+      // 入力欄に現在の情報を入れる
+      document.getElementById("displayNameInput").value = user.name;
+      //document.getElementById("emailInput").value = user.email; // メールアドレスは変更不可
+      // アイコンのプレビューを更新
+      // ファイル入力は空のまま（セット不可）
+      document.getElementById("iconInput").value = ""; // 何もしなくても空
+        
+      // アイコンプレビューは更新
+      document.getElementById("currentIconPreview").src = user.iconUrl;
+
+    };
+
+    document.getElementById("closeSettings").onclick = () => {
+      document.getElementById("settingsModal").style.display = "none";
+    };
+
+    document.getElementById("permission_notification").onclick = async () => {
+      // まず現在の許可状態をログ送信
+      sendMessageToPython("現在の通知設定: " + Notification.permission);
+
+      // 許可がまだ決まっていない場合（＝ユーザーが何も選んでない）だけリクエスト
+      if (Notification.permission === "default") {
+        const permission = await Notification.requestPermission();
+        sendMessageToPython("通知リクエストの結果: " + permission);
+
+        if (permission === "granted") {
+          alert("通知が許可されました");
+          notification_is_allowed = true;
+        } else if (permission === "denied") {
+          alert("通知が拒否されました");
+          notification_is_allowed = false;
+        }
+      } else if (Notification.permission === "granted") {
+        alert("通知はすでに許可されています");
+        notification_is_allowed = true;
+      } else if (Notification.permission === "denied") {
+        alert("通知はすでに拒否されています。ブラウザ設定で変更してください。");
+        notification_is_allowed = false;
+      }
+    };
+
+    document.getElementById("saveSettings").onclick = async () => {
+      alert("プロフィールを更新します。");
+      sendMessageToPython("profile update");
+      const formData = new FormData();
+      formData.append("name", String(document.getElementById("displayNameInput").value));
+
+      const fileInput = document.getElementById("iconInput");
+      if (fileInput.files.length > 0) {
+        formData.append("icon", fileInput.files[0]);
+      }
+      //sendMessageToPython("プロフィール更新: " + formData.get("name") + ", アイコン: " + formData.get("icon"))
+
+      const newName = formData.get("name");
+      const newIcon = formData.get("icon");
+      let iconFileName = "なし";
+
+      if (newIcon instanceof File) {
+        iconFileName = newIcon.name;
+        //if (iconFileName) {
+          //currentUser.icon = iconFileName;
+          //currentUser.iconUrl = `/icons/${iconFileName}`;
+            
+        //}
+      }
+
+      sendMessageToPython("プロフィール更新: " + formData.get("name") + ", アイコン: " + iconFileName);
+
+      alert("プロフィール更新: " + formData.get("name") + ", アイコン: " + iconFileName);
+      //sendMessageToPython(`プロフィール更新: ${userName}, アイコン: ${currentUser.icon || "なし"}`);
+
+      try {
+        const res = await fetch("/api/update-profile", {
+          method: "POST",
+          body: formData
+        });
+        const result = await res.json();
+        if (result.success) {
+          //window.location.href = "/chat";
+          alert("プロフィールの更新を完了するために、ログアウトします。");
+          sendMessageToPython("ログアウト")
+          const response = await fetch("/logout", { method: "POST" });
+          const data = await response.json();
+
+          if (data.status === "ok"){
+            //loadMembers();
+            window.location.href = "/";
+            window.location.reload();
+          }else{
+            alert("ログアウトに失敗しました。");
+            sendMessageToPython("ログアウト失敗");
+          }
+        }else {
+          alert("プロフィールを更新できませんでした。");
+          sendMessageToPython("プロフィール更新失敗");
+        }
+      } catch (err) {
+        console.error("Error updating profile:", err);
+        alert("プロフィールの更新中にエラーが発生しました。");
+        sendMessageToPython("プロフィール更新エラー");
+      }
+
+      document.getElementById("settingsModal").style.display = "none";
+    };
+    async function sendMessageToPython(msg) {
+      const message = msg;
+
+      await fetch("/send_debug", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: msg })
+      });
+
+      //document.getElementById("text").value = "";
+    };
+    async function logout() {
+      sendMessageToPython("ログアウト")
+      const res = await fetch("/logout", { method: "POST" });
+      const data = await res.json();
+      if (data.status === "ok"){
+        window.location.href = "/login";
+        //window.location.reload();
+      }
+    }
+    setInterval(() => {
+      if (currentGroupId) {
+        loadMessages(currentGroupId);
+      }
+    }, 1000);
+
+    //loadMessages();
+    //loadMembers();
+
+  </script>
+  
+</html>
