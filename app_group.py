@@ -1,7 +1,5 @@
-from flask import (
-    Flask, request, render_template, redirect,
-    url_for, session, jsonify, send_from_directory
-)
+from flask import (Flask, request, render_template, redirect, url_for, session,
+                   jsonify, send_from_directory)
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import sqlite3
@@ -42,9 +40,11 @@ app.config['ICON_FOLDER'] = ICON_FOLDER
 
 JST = timezone(timedelta(hours=9))  # UTC+9（日本時間）
 
+
 def random_id(length=8):
     chars = string.ascii_letters + string.digits  # 英大文字＋小文字＋数字
     return ''.join(random.choice(chars) for _ in range(length))
+
 
 @app.route('/clean_broken_groups')
 def clean_broken_groups(db_path="chat.db"):
@@ -71,15 +71,19 @@ def clean_broken_groups(db_path="chat.db"):
         has_messages_table = messages_table in all_tables
 
         # メンバーの存在確認
-        c.execute("SELECT COUNT(*) FROM group_members WHERE group_id = ?", (group_id,))
+        c.execute("SELECT COUNT(*) FROM group_members WHERE group_id = ?",
+                  (group_id, ))
         has_members = c.fetchone()[0] > 0
 
         if not has_messages_table or not has_members:
-            print(f"[削除] グループ '{group_id}'：テーブル存在={has_messages_table}、メンバー={has_members}")
+            print(
+                f"[削除] グループ '{group_id}'：テーブル存在={has_messages_table}、メンバー={has_members}"
+            )
 
             # groups テーブルと group_members から削除
-            c.execute("DELETE FROM groups WHERE group_id = ?", (group_id,))
-            c.execute("DELETE FROM group_members WHERE group_id = ?", (group_id,))
+            c.execute("DELETE FROM groups WHERE group_id = ?", (group_id, ))
+            c.execute("DELETE FROM group_members WHERE group_id = ?",
+                      (group_id, ))
 
             # messages テーブルがあれば削除
             if has_messages_table:
@@ -110,7 +114,12 @@ def clean_broken_groups(db_path="chat.db"):
     if not deleted_groups and not deleted_orphan_tables:
         print("削除された項目はありません。データは健全です。")
 
-    return jsonify({"status": "ok", "deleted_groups": deleted_groups, "deleted_orphan_tables": deleted_orphan_tables})
+    return jsonify({
+        "status": "ok",
+        "deleted_groups": deleted_groups,
+        "deleted_orphan_tables": deleted_orphan_tables
+    })
+
 
 # === データベース初期化 ===
 def init_db():
@@ -130,6 +139,7 @@ def init_db():
             CREATE TABLE IF NOT EXISTS groups (
                 id TEXT PRIMARY KEY,
                 name TEXT,
+                icon_url TEXT,
                 creator_id INTEGER,
                 created_at TEXT,
                 messages_table TEXT
@@ -154,7 +164,10 @@ def init_db():
             )
         ''')
         """
+
+
 init_db()
+
 
 # === アプリパスワード認証 ===
 @app.route('/app_auth', methods=['GET', 'POST'])
@@ -163,7 +176,7 @@ def app_auth():
     if session.get('app_authenticated', False):
         print("既にアプリパスワード認証済みです。ログイン画面へリダイレクト")
         return redirect(url_for('login'))
-        
+
     if request.method == 'POST':
         app_password = str(request.form.get('app_password'))
         if app_password == APP_PASSWORD:
@@ -173,12 +186,15 @@ def app_auth():
             return redirect(url_for('login'))
         else:
             print("アプリパスワード認証失敗")
-            return render_template('app_password.html', error="アプリパスワードが間違っています。")
+            return render_template('app_password.html',
+                                   error="アプリパスワードが間違っています。")
     return render_template('app_password.html')
+
 
 # アプリ認証チェック関数
 def check_app_auth():
     return session.get('app_authenticated', False)
+
 
 # === ユーザー登録 ===
 @app.route('/register', methods=['GET', 'POST'])
@@ -186,14 +202,16 @@ def register():
     # アプリパスワード認証チェック
     if not check_app_auth():
         return redirect(url_for('app_auth'))
-        
+
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
         confirm_password = request.form.get('confirm_password')
         display_name = request.form.get('display_name')
         icon = request.files.get('icon')
-        print(f"email: {email}, password: {password}, confirm_password: {confirm_password}, display_name: {display_name}, icon: {icon.filename if icon else 'None'}")
+        print(
+            f"email: {email}, password: {password}, confirm_password: {confirm_password}, display_name: {display_name}, icon: {icon.filename if icon else 'None'}"
+        )
 
         if not email or not password or not display_name:
             return render_template('register.html', error="すべての項目を入力してください。")
@@ -209,12 +227,15 @@ def register():
         hashed_password = generate_password_hash(password)
         try:
             with sqlite3.connect("chat.db") as conn:
-                conn.execute('''
+                conn.execute(
+                    '''
                     INSERT INTO users (email, display_name, password, icon_filename, icon_is_default)
                     VALUES (?, ?, ?, ?, ?)
-                ''', (email, display_name, hashed_password, filename, 0 if icon else 1))
+                ''', (email, display_name, hashed_password, filename,
+                      0 if icon else 1))
         except sqlite3.IntegrityError:
-            return render_template('register.html', error="このメールアドレスは既に登録されています。")
+            return render_template('register.html',
+                                   error="このメールアドレスは既に登録されています。")
 
         session['user'] = email
         return redirect(url_for('login'))
@@ -227,13 +248,14 @@ def login():
     # アプリパスワード認証チェック
     if not check_app_auth():
         return redirect(url_for('app_auth'))
-        
+
     if request.method == 'POST':
         email = str(request.form.get('email'))
         password = str(request.form.get('password'))
 
         with sqlite3.connect("chat.db") as conn:
-            cur = conn.execute("SELECT id, password FROM users WHERE email=?", (email,))
+            cur = conn.execute("SELECT id, password FROM users WHERE email=?",
+                               (email, ))
             row = cur.fetchone()
 
         if row and check_password_hash(row[1], password):
@@ -245,64 +267,87 @@ def login():
 
     return render_template('login.html')
 
+
 # チャット画面 first
 @app.route('/get_groups')
 def get_groups():
     # アプリパスワード認証チェック
     if not check_app_auth():
         return redirect(url_for('app_auth'))
-        
+
     if 'user' not in session:
         return redirect(url_for('login'))
 
     email = session['user']
-    
+
     with sqlite3.connect("chat.db") as conn:
         # ユーザー情報（表示名＋アイコン）を取得
-        cur = conn.execute("SELECT display_name, icon_filename, icon_is_default FROM users WHERE email=?", (email,))
+        cur = conn.execute(
+            "SELECT display_name, icon_filename, icon_is_default FROM users WHERE email=?",
+            (email, ))
         row = cur.fetchone()
         display_name = row[0] if row else "Unknown"
         user_icon = row[1] if row and row[1] else None
         user_icon_is_default = row[2] if row else 1
 
-        cur2 = conn.execute("""SELECT g.id, g.name, g.messages_table
-            FROM groups g
-            JOIN user_groups ug ON g.id = ug.group_id
-            WHERE ug.user_id = ?""", (session['uid'],))
-        groups = [{"id": r[0], "name": r[1], "messages_table": r[2]} for r in cur2.fetchall()]
+    cur2 = conn.execute("""
+        SELECT
+            g.id,
+            g.name,
+            g.icon_url,
+            g.creator_id,
+            g.created_at,
+            g.messages_table,
+            u.display_name,
+            u.icon_filename,
+            u.icon_is_default
+        FROM groups g
+        JOIN user_groups ug ON g.id = ug.group_id
+        JOIN users u ON g.creator_id = u.id
+        WHERE ug.user_id = ?
+    """, (session['uid'], ))
+    result = cur2.fetchall()
 
-        """
-        # 全ユーザーの名前とアイコンを取得（メンバーリスト用）
-        cur = conn.execute("SELECT display_name, icon_filename, icon_is_default FROM users")
-        members = [{"name": r[0], "icon": r[1], "icon_is_default": r[2]} for r in cur.fetchall()]
+    groups = []
+    for r in result:
+        group = {
+            "id": r[0],
+            "name": r[1],
+            "icon_url": r[2],
+            "creator_id": r[3],
+            "created_at": r[4],
+            "messages_table": r[5],
+            "creator_display_name": r[6],
+            "creator_icon_url": f"/icons/{r[7]}" if r[8] == 1 else "/static/default.jpeg"
+        }
+        groups.append(group)
 
-        # メッセージ取得（名前だけでなく送信者のアイコンも含める場合はクエリ変更が必要）
-        cur = conn.execute("SELECT id, name, text, time, read, email FROM messages")
-        messages = []
-        for id, name, text, time_, read, email_ in cur.fetchall():
-            # 送信者のアイコン取得
-            cur_icon = conn.execute("SELECT icon_filename, icon_is_default FROM users WHERE email=?", (email_,))
-            icon_row = cur_icon.fetchone()
-            icon = icon_row[0] if icon_row and icon_row[0] else None
-            messages.append({
-                "id": id,
-                "name": name,
-                "text": text,
-                "time": time_,
-                "read": read,
-                "email": email_,
-                "icon": icon,
-                "icon_is_default": icon_row[1] if icon_row else 1
-            })
-            #print(f"Message from {name}: {text} at {time_}, read: {read}, email: {email_}, icon: {icon}, icon_is_default: {icon_row[1] if icon_row else 1}")
-        """
-    return jsonify({"user": display_name, "user_icon": user_icon, "user_icon_is_default": user_icon_is_default, "email":email, "groups": groups})
+    print(f"returning groups: {groups}")
+    return jsonify({
+        "user": display_name,
+        "user_icon": user_icon,
+        "user_icon_is_default": user_icon_is_default,
+        "email": email,
+        "groups": groups
+    })
+
 
 @app.route('/create_group', methods=['POST'])
 def create_group():
     if 'user' not in session:
         return "Unauthorized", 403
+    #data = request.get_json()
     group_name = request.form.get('group_name')
+    print(group_name)
+    group_icon = request.files.get('group_icon')
+    group_icon_url = ""
+    if group_icon:
+        ext = os.path.splitext(str(group_icon.filename))[1]
+        filename = f"{uuid.uuid4().hex}{ext}"
+        group_icon.save(os.path.join(app.config['ICON_FOLDER'], filename))
+        group_icon_url = f"/icons/{filename}"
+    else:
+        group_icon_url = "/static/chat_default.png"
     #creater_email = session['user']
     creater_id = session['uid']
     created_at = datetime.now(JST).strftime('%Y-%m-%d %H:%M:%S')
@@ -310,14 +355,17 @@ def create_group():
     with sqlite3.connect("chat.db") as conn:
         while True:
             group_id = random_id(8)
-            cur = conn.execute("SELECT 1 FROM groups WHERE id = ?", (group_id,))
+            cur = conn.execute("SELECT 1 FROM groups WHERE id = ?",
+                               (group_id, ))
             if not cur.fetchone():
                 break  # 衝突なし
     group_id = group_id.replace("-", "_")
     messages_table = f"messages_{group_id}"
 
     with sqlite3.connect("chat.db") as conn:
-        conn.execute("INSERT INTO groups (id, name, creator_id, created_at, messages_table) VALUES (?, ?, ?, ?, ?)", (group_id, group_name, creater_id, created_at, messages_table))
+        conn.execute(
+            "INSERT INTO groups (id, name, icon_url, creator_id, created_at, messages_table) VALUES (?, ?, ?, ?, ?, ?)",
+            (group_id, group_name, group_icon_url, creater_id, created_at, messages_table))
         conn.execute(f"""
             CREATE TABLE IF NOT EXISTS {messages_table} (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -333,6 +381,7 @@ def create_group():
     #return render_template('chat.html', group_id=group_id)
     return jsonify({"status": "ok", "group_id": group_id})
 
+
 @app.route('/join_group', methods=['POST'])
 def join_group():
     if 'user' not in session:
@@ -344,19 +393,27 @@ def join_group():
     with sqlite3.connect("chat.db") as conn:
         cur = conn.execute(
             "SELECT 1 FROM user_groups WHERE user_id = ? AND group_id = ? LIMIT 1",
-            (user_id, group_id)
-        )
+            (user_id, group_id))
         result = cur.fetchone()
         if result:
             return jsonify({"status": "error", "message": "既に参加しています"}), 400
-        conn.execute("INSERT INTO user_groups (user_id, group_id) VALUES (?, ?)", (user_id, group_id))
+        conn.execute(
+            "INSERT INTO user_groups (user_id, group_id) VALUES (?, ?)",
+            (user_id, group_id))
         #参加するグループ名を取得
-        cur = conn.execute("SELECT name FROM groups WHERE id = ?", (group_id,))
+        cur = conn.execute("SELECT name FROM groups WHERE id = ?",
+                           (group_id,))
         row = cur.fetchone()
         if row is None:
             return jsonify({"status": "error", "message": "グループが存在しません"}), 400
-        group_name = row[0] if row else "Unknown"
-    return jsonify({"status": "ok", "group_id": group_id, "group_name": group_name, "message":""})
+    group_name = row[0]
+    return jsonify({
+        "status": "ok",
+        "group_id": group_id,
+        "group_name": group_name,
+        "message": ""
+    })
+
 
 @app.route('/chat/<group_id>')
 def chat(group_id):
@@ -372,30 +429,39 @@ def chat(group_id):
     with sqlite3.connect("chat.db") as conn:
         cur = conn.execute(
             "SELECT 1 FROM user_groups WHERE user_id = ? AND group_id = ? LIMIT 1",
-            (user_id, group_id)
-        )
+            (user_id, group_id))
         result = cur.fetchone()
         if not result:
             return jsonify({'status': 'error', 'message': 'グループに参加していません'})
 
         # ユーザー情報（表示名＋アイコン）を取得
-        cur = conn.execute("SELECT display_name, icon_filename, icon_is_default FROM users WHERE email=?", (email,))
+        cur = conn.execute(
+            "SELECT display_name, icon_filename, icon_is_default FROM users WHERE email=?",
+            (email, ))
         row = cur.fetchone()
         display_name = row[0] if row else "Unknown"
         user_icon = row[1] if row and row[1] else None
         user_icon_is_default = row[2] if row else 1
 
         # グループ内の全ユーザーの名前とアイコンを取得（メンバーリスト用）
-        cur = conn.execute("SELECT display_name, icon_filename, icon_is_default FROM users")
-        members = [{"name": r[0], "icon": r[1], "icon_is_default": r[2]} for r in cur.fetchall()]
+        cur = conn.execute(
+            "SELECT display_name, icon_filename, icon_is_default FROM users")
+        members = [{
+            "name": r[0],
+            "icon": r[1],
+            "icon_is_default": r[2]
+        } for r in cur.fetchall()]
 
         # メッセージ取得（名前だけでなく送信者のアイコンも含める場合はクエリ変更が必要）
         messages_table = f"messages_{group_id}"
-        cur = conn.execute(f"SELECT id, name, text, time, read, email FROM {messages_table}")
+        cur = conn.execute(
+            f"SELECT id, name, text, time, read, email FROM {messages_table}")
         messages = []
         for id, name, text, time_, read, email_ in cur.fetchall():
             # 送信者のアイコン取得
-            cur_icon = conn.execute("SELECT icon_filename, icon_is_default FROM users WHERE email=?", (email_,))
+            cur_icon = conn.execute(
+                "SELECT icon_filename, icon_is_default FROM users WHERE email=?",
+                (email_, ))
             icon_row = cur_icon.fetchone()
             icon_ = icon_row[0] if icon_row and icon_row[0] else None
             user_icon_is_default_ = icon_row[1] if icon_row else 1
@@ -409,7 +475,9 @@ def chat(group_id):
                 "icon": icon_,
                 "icon_is_default": user_icon_is_default_
             })
-    return render_template('chat_group.html', user=display_name, user_icon=user_icon, user_icon_is_default=user_icon_is_default, messages=messages, email=email, members=members, group_id=group_id, file_secret_key=file_secret_key)
+    print(f"returning messages: {messages}")
+    return jsonify(messages)
+
 
 # === アイコンアップロード（ログイン中） ===
 @app.route('/upload_icon', methods=['POST'])
@@ -427,7 +495,9 @@ def upload_icon():
 
     email = session['user']
     with sqlite3.connect("chat.db") as conn:
-        conn.execute("UPDATE users SET icon_filename=?, icon_is_default=0 WHERE email=?", (filename, email))
+        conn.execute(
+            "UPDATE users SET icon_filename=?, icon_is_default=0 WHERE email=?",
+            (filename, email))
 
     return jsonify({"status": "ok", "filename": filename})
 
@@ -453,17 +523,21 @@ def upload():
     email = session['user']
     user_id = session['uid']
     with sqlite3.connect("chat.db") as conn:
-        cur = conn.execute("SELECT display_name FROM users WHERE email=?", (email,))
+        cur = conn.execute("SELECT display_name FROM users WHERE email=?",
+                           (email, ))
         row = cur.fetchone()
         name = row[0] if row else "Unknown"
-        conn.execute(f"INSERT INTO {table_name} (name, text, time, read, email) VALUES (?, ?, ?, ?, ?)",
-                     (name, f"{file_secret_key} {filename}", now, 0, email))
-        conn.execute('''
+        conn.execute(
+            f"INSERT INTO {table_name} (name, text, time, read, email) VALUES (?, ?, ?, ?, ?)",
+            (name, f"{file_secret_key} {filename}", now, 0, email))
+        conn.execute(
+            '''
             UPDATE user_groups SET last_comment_time = ?
             WHERE user_id = ? AND group_id = ?
         ''', (now_sec, user_id, group_id))
 
     return "Uploaded", 200
+
 
 @app.route('/files/<filename>')
 def serve_file(filename):
@@ -474,6 +548,7 @@ def serve_file(filename):
 @app.route('/icons/<filename>')
 def serve_icon(filename):
     return send_from_directory(app.config['ICON_FOLDER'], str(filename))
+
 
 @app.route('/api/update-profile', methods=['POST'])
 def update_profile():
@@ -487,12 +562,15 @@ def update_profile():
     user_id = session.get('uid')
     new_name = request.form.get('name')
     icon = request.files.get('icon')
-    print(f"New name: {new_name}, New icon: {icon.filename if icon else 'None'}")
+    print(
+        f"New name: {new_name}, New icon: {icon.filename if icon else 'None'}")
     print("updating database...")
 
     with sqlite3.connect("chat.db") as conn:
         # 旧ユーザー情報を取得
-        cur = conn.execute("SELECT icon_filename, icon_is_default FROM users WHERE email=?", (email,))
+        cur = conn.execute(
+            "SELECT icon_filename, icon_is_default FROM users WHERE email=?",
+            (email, ))
         row = cur.fetchone()
         old_icon_filename = row[0]
         old_icon_is_default = row[1]
@@ -513,7 +591,9 @@ def update_profile():
 
             if not old_icon_is_default:
                 try:
-                    os.remove(os.path.join(app.config['ICON_FOLDER'], old_icon_filename))
+                    os.remove(
+                        os.path.join(app.config['ICON_FOLDER'],
+                                     old_icon_filename))
                 except FileNotFoundError:
                     pass
                 except Exception as e:
@@ -524,26 +604,32 @@ def update_profile():
 
         update_values.append(email)
         if update_fields:
-            conn.execute(f"UPDATE users SET {', '.join(update_fields)} WHERE email=?", update_values)
+            conn.execute(
+                f"UPDATE users SET {', '.join(update_fields)} WHERE email=?",
+                update_values)
 
         # ===== ここから：各グループのmessagesテーブルのnameも更新 =====
         if new_name and user_id:
-            cur2 = conn.execute("""
+            cur2 = conn.execute(
+                """
                 SELECT g.messages_table
                 FROM groups g
                 JOIN user_groups ug ON g.id = ug.group_id
                 WHERE ug.user_id = ?
-            """, (user_id,))
+            """, (user_id, ))
             group_tables = [r[0] for r in cur2.fetchall()]
 
             for table_name in group_tables:
                 try:
-                    conn.execute(f"UPDATE {table_name} SET name=? WHERE email=?", (new_name, email))
+                    conn.execute(
+                        f"UPDATE {table_name} SET name=? WHERE email=?",
+                        (new_name, email))
                 except sqlite3.OperationalError as e:
                     print(f"テーブル {table_name} の更新中にエラー: {e}")
 
     print("update profile successfully")
     return jsonify({"success": True})
+
 
 # === メッセージ送信（グループ対応）===
 @app.route('/send', methods=['POST'])
@@ -564,7 +650,8 @@ def send_message():
     user_id = session['uid']
 
     with sqlite3.connect("chat.db") as conn:
-        cur = conn.execute("SELECT display_name FROM users WHERE email=?", (email,))
+        cur = conn.execute("SELECT display_name FROM users WHERE email=?",
+                           (email, ))
         row = cur.fetchone()
 
         if row is None:
@@ -580,21 +667,24 @@ def send_message():
 
         # SQLインジェクション対策のため、テーブル名のバリデーション（数字のみ）
         #if not table_name.replace("messages_", "").isdigit():
-            #return "Invalid group_id", 400
+        #return "Invalid group_id", 400
 
-        conn.execute(f'''
+        conn.execute(
+            f'''
             INSERT INTO {table_name} (name, text, time, read, email)
             VALUES (?, ?, ?, 0, ?)
         ''', (name, text, now, email))
 
-        conn.execute('''
+        conn.execute(
+            '''
             UPDATE user_groups SET last_comment_time = ?
             WHERE user_id = ? AND group_id = ?
         ''', (now_sec, user_id, group_id))
-    
+
     print(f"[送信メッセージ] ({group_id}) {text}")
     return jsonify({"status": "ok", "message": text, "time": now})
-    
+
+
 def human_readable_time(timestamp):
     if timestamp == -1:
         return "コメントなし"
@@ -664,6 +754,8 @@ def get_messages():
     """
     #print(f"Fetched {len(messages)} messages")
     return jsonify(messages)
+
+
 # ログアウト
 @app.route("/logout", methods=["POST"])
 def logout():
@@ -675,9 +767,11 @@ def logout():
     resp.set_cookie("session", "", expires=0)  # 👈 Cookieを強制削除
     return resp
 
+
 @app.route("/login")
 def login_redirect():
     return redirect("/")
+
 
 @app.route("/api/user-info")
 def user_info():
@@ -688,7 +782,9 @@ def user_info():
 
     with sqlite3.connect("chat.db") as db:
         db.row_factory = sqlite3.Row
-        user = db.execute("SELECT id, display_name, icon_filename, icon_is_default, email FROM users WHERE id = ?", (uid,)).fetchone()
+        user = db.execute(
+            "SELECT id, display_name, icon_filename, icon_is_default, email FROM users WHERE id = ?",
+            (uid, )).fetchone()
         if not user:
             print("User not found")
             return jsonify({"error": "ユーザーが見つかりません"}), 404
@@ -697,14 +793,11 @@ def user_info():
             "id": user["id"],
             "email": user["email"],
             "name": user["display_name"],
-            "iconUrl": (
-                "/static/default.jpeg"
-                if user["icon_is_default"]
-                else f"/icons/{user['icon_filename']}"
-            ),    
-            
+            "iconUrl": ("/static/default.jpeg" if user["icon_is_default"] else
+                        f"/icons/{user['icon_filename']}"),
             "icon_is_default": user["icon_is_default"]
         })
+
 
 @app.route("/send_debug", methods=["POST"])
 def receive_message():
@@ -714,25 +807,34 @@ def receive_message():
     print(f"[受信メッセージ] {text}")  # ← ターミナルに出る
     return jsonify({"status": "ok"})
 
+
 @app.route("/api/members/<group_id>")
 def get_members(group_id):
-    
+
     with sqlite3.connect("chat.db") as conn:
         #cur = conn.execute("SELECT id, display_name, icon_filename, icon_is_default, last_comment_time FROM users")
         #members = [{"id": r[0], "name": r[1], "icon": r[2], "icon_is_default": r[3], "last_comment_time": r[4]} for r in cur.fetchall()]
-        cur = conn.execute("""
+        cur = conn.execute(
+            """
             SELECT u.id, u.display_name, u.icon_filename, u.icon_is_default, ug.last_comment_time
             FROM users u
             JOIN user_groups ug ON u.id = ug.user_id
             WHERE ug.group_id = ?
-        """, (group_id,))
+        """, (group_id, ))
 
-        members = [{"id": r[0], "name": r[1], "icon": r[2], "icon_is_default": r[3], "last_comment_time": r[4]} for r in cur.fetchall()]
+        members = [{
+            "id": r[0],
+            "name": r[1],
+            "icon": r[2],
+            "icon_is_default": r[3],
+            "last_comment_time": r[4]
+        } for r in cur.fetchall()]
         for member in members:
-            member["last_comment_time_readable"] = human_readable_time(member["last_comment_time"])
+            member["last_comment_time_readable"] = human_readable_time(
+                member["last_comment_time"])
         #conn.commit()
         return jsonify(members)
-    
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
