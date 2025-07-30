@@ -414,6 +414,62 @@ def join_group():
         "message": ""
     })
 
+@app.route('/update_group_profile', methods=['POST'])
+def update_group_profile():
+    if 'user' not in session:
+        return "Unauthorized", 403
+
+    new_group_name = request.form.get('group_name')
+    new_group_icon = request.files.get('group_icon')
+    group_id = request.form.get('group_id')
+
+    print(f"New group name: {new_group_name}, New group icon: {new_group_icon.filename if new_group_icon else 'None'}")
+
+    with sqlite3.connect("chat.db") as conn:
+        cur = conn.execute("SELECT icon_url FROM groups WHERE id=?", (group_id,))
+        row = cur.fetchone()
+        old_icon_url = row[0] if row else None
+        icon_url = "/static/chat_default.png"
+        # 新しいアイコンを保存してパスを作成
+        if new_group_icon:
+            # 保存先ディレクトリ（適宜調整）
+            #upload_folder = os.path.join(app.config["ICON_FOLDER"], new_group_icon)
+            #os.makedirs(upload_folder, exist_ok=True)
+
+            # ファイル名を安全にする（例：groupid_オリジナルファイル名）
+            #filename = f"group_{group_id}_{new_group_icon.filename}"
+            ext = os.path.splitext(str(new_group_icon.filename))[1]
+            filename = str(uuid.uuid4().hex)+ext
+            filepath = os.path.join(app.config["ICON_FOLDER"], filename)
+
+            # ファイル保存
+            new_group_icon.save(filepath)
+
+            # 古いアイコンファイルがあれば削除（ファイル存在確認してから）
+            if old_icon_url != "/static/chat_default.png":
+                try:
+                    if old_icon_url:
+                    #old_icon_path = os.path.join(app.config["ICON_FOLDER"], old_icon_url.lstrip('/'))
+                    #old_icon_path = os.path.join(app.config["ICON_FOLDER"], old_icon_url.split('/')[-1])
+                        if os.path.exists(old_icon_url):
+                            os.remove(old_icon_url)
+                except Exception as e:
+                    print(f"Failed to delete old icon: {e}")
+
+            # DBに新しいアイコンのパスをセット
+            icon_url = filepath
+        else:
+            # アイコンは変更しない
+            icon_url = old_icon_url
+
+        # グループ名とアイコンのURLを更新
+        conn.execute(
+            "UPDATE groups SET name=?, icon_url=? WHERE id=?",
+            (new_group_name, icon_url, group_id)
+        )
+        conn.commit()
+
+    return {"status": "ok", "message": "Group profile updated"}        
 
 @app.route('/chat/<group_id>')
 def chat(group_id):
@@ -425,7 +481,7 @@ def chat(group_id):
         return redirect(url_for('app_auth'))
     # グループに参加しているかチェック
     user_id = session['uid']
-    email = session['user']
+    #email = session['user']
     with sqlite3.connect("chat.db") as conn:
         cur = conn.execute(
             "SELECT 1 FROM user_groups WHERE user_id = ? AND group_id = ? LIMIT 1",
@@ -434,6 +490,7 @@ def chat(group_id):
         if not result:
             return jsonify({'status': 'error', 'message': 'グループに参加していません'})
 
+        """
         # ユーザー情報（表示名＋アイコン）を取得
         cur = conn.execute(
             "SELECT display_name, icon_filename, icon_is_default FROM users WHERE email=?",
@@ -451,6 +508,7 @@ def chat(group_id):
             "icon": r[1],
             "icon_is_default": r[2]
         } for r in cur.fetchall()]
+        """
 
         # メッセージ取得（名前だけでなく送信者のアイコンも含める場合はクエリ変更が必要）
         messages_table = f"messages_{group_id}"
@@ -476,7 +534,7 @@ def chat(group_id):
                 "icon_is_default": user_icon_is_default_
             })
     print(f"returning messages: {messages}")
-    return jsonify(messages)
+    return jsonify({"messages": messages, "file_secret_key": file_secret_key})
 
 
 # === アイコンアップロード（ログイン中） ===
@@ -529,7 +587,7 @@ def upload():
         name = row[0] if row else "Unknown"
         conn.execute(
             f"INSERT INTO {table_name} (name, text, time, read, email) VALUES (?, ?, ?, ?, ?)",
-            (name, f"{file_secret_key} {filename}", now, 0, email))
+            (name, f"{file_secret_key}{filename}", now, 0, email))
         conn.execute(
             '''
             UPDATE user_groups SET last_comment_time = ?
@@ -538,6 +596,18 @@ def upload():
 
     return "Uploaded", 200
 
+@app.route('/get_group_info')
+def get_group_info():
+    data = request.get_json()
+    group_id = data.get('group_id')
+    with sqlite3.connect("chat.db") as conn:
+        cur = conn.execute("SELECT name, icon_url FROM groups WHERE id = ?", (group_id,))
+        row = cur.fetchone()
+        if row is None:
+            return jsonify({"status": "error", "message": "グループが存在しません"}), 400
+        group_name = row[0]
+        group_icon_url = row[1]
+    return jsonify({"status": "ok", "group_name": group_name, "group_icon_url": group_icon_url})
 
 @app.route('/files/<filename>')
 def serve_file(filename):
@@ -837,4 +907,4 @@ def get_members(group_id):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))

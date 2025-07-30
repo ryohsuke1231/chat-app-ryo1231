@@ -26,3 +26,12 @@ args = "source venv/bin/activate"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python app_group.py"
+
+[[workflows.workflow]]
+name = "Reset files"
+mode = "sequential"
+author = 44606325
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python reset_files.py"
