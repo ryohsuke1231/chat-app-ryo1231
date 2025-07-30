@@ -6,31 +6,61 @@ import sqlite3
 import uuid
 from datetime import datetime, timezone, timedelta
 import os
+import shutil
+
 #/from dotenv import load_dotenv
 import logging
 
 import random
 import string
 import re
+import atexit
+
+def on_shutdown():
+    print("Flaskアプリが終了されました")
+    print("chat.dbなどを削除します")
+    clean_files()
+
+def clean_files():
+    database_file = "chat.db"
+    uploads_folder = "uploads"
+    icons_folder = "icons"
+
+    if os.path.exists(database_file):
+      os.remove(database_file)
+    else:
+      print(f"{database_file} does not exist")
+
+    if os.path.exists(icons_folder):
+      shutil.rmtree(icons_folder)
+      os.mkdir(icons_folder)
+    else:
+      print(f"{icons_folder} does not exist")
+
+    if os.path.exists(uploads_folder):
+      shutil.rmtree(uploads_folder)
+      os.mkdir(uploads_folder)
+    else:
+      print(f"{uploads_folder} does not exist")
+
+atexit.register(on_shutdown)
+
 
 logging.getLogger('werkzeug').setLevel(logging.DEBUG)
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'
+app.secret_key = os.getenv('APP_SECRET_KEY')
 
 is_test = True
 
-file_secret_key = '[@z5vx4gc]'
-#file_secret_key = os.getenv('FILE_SECRET_KEY')
+file_secret_key = os.getenv('FILE_SECRET_KEY')
 
 # === 設定 ===
 UPLOAD_FOLDER = 'uploads'
 ICON_FOLDER = 'icons'
 TOKEN_EXPIRATION_MINUTES = 10
-#APP_PASSWORD = 'hellodrone1231@yeah@gakuho_1B.students'  # アプリアクセス用パスワード
-APP_PASSWORD = 'gakuho_j.1B.students'
-#load_dotenv()
-#APP_PASSWORD = os.getenv('APP_PASSWORD')
+
+APP_PASSWORD = os.getenv('APP_PASSWORD')
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(ICON_FOLDER, exist_ok=True)
@@ -254,14 +284,14 @@ def login():
         password = str(request.form.get('password'))
 
         with sqlite3.connect("chat.db") as conn:
-            cur = conn.execute("SELECT id, password FROM users WHERE email=?",
+            cur = conn.execute("SELECT id, password, display_name FROM users WHERE email=?",
                                (email, ))
             row = cur.fetchone()
 
         if row and check_password_hash(row[1], password):
             session['user'] = email
             session['uid'] = row[0]
-            return render_template("chat_group.html", user=email, email=email)
+            return render_template("chat_group.html", user=row[2], email=email)
 
         return render_template('login.html', error="メールアドレスまたはパスワードが間違っています。")
 
@@ -596,7 +626,7 @@ def upload():
 
     return "Uploaded", 200
 
-@app.route('/get_group_info')
+@app.route('/get_group_info', methods=['POST'])
 def get_group_info():
     data = request.get_json()
     group_id = data.get('group_id')

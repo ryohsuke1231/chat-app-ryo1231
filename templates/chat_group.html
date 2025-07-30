@@ -647,7 +647,9 @@
         li.style.cursor = 'pointer';
 
         // グループ名表示 or 編集フォームの切り替え
-        if (currentEditingGroupId === group.id) {
+        
+        //if (currentEditingGroupId === group.id) {
+        if (false){
           showGroupSettingsModal(group);
           return;
         } else {
@@ -737,6 +739,12 @@
 
         groupList.appendChild(li);
       });
+      if (currentEditingGroupId) {
+        const groupToEdit = groups.find(g => g.id === currentEditingGroupId);
+        if (groupToEdit) {
+          showGroupSettingsModal(groupToEdit);
+        }
+      }
     }
     function showGroupSettingsModal(group) {
       const modal = document.getElementById("groupSettingsModal");
@@ -784,8 +792,8 @@
           }
           currentEditingGroupId = null;
           hideGroupSettingsModal();
-          loadGroups();
           afterUpdateGroup(group.id);
+          loadGroups();
         } catch (err) {
           alert("通信エラーが発生しました");
         }
@@ -822,9 +830,9 @@
       });
       const data = await res.json();
       if (data.status === "ok") {
-        if (String(group_id) === String(currentGroupId)) {
+        if (1 === 1) {
+          document.getElementById("welcomeMessage").textContent = `「${data.group_name}」グループでチャット中`;
           selectGroup(group_id, data.group_name);
-          //document.getElementById("welcomeMessage").textContent = `「${data.group_name}」グループでチャット中`;
           //showChatUI();
           //loadMessages(group_id);
         }
