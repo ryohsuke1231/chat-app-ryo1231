@@ -966,11 +966,11 @@
           });
           const data2 = await res2.json();
           if (data2.status === "ok"){
-            alert(`グループ「${data2.group_name}」に参加しました！`);
+            //alert(`グループ「${data2.group_name}」に参加しました！`);
             loadGroups();
             selectGroup(data.group_id, groupName);
           } else {
-            alert(`グループ「${groupName}」に参加できませんでした`);
+            //alert(`グループ「${groupName}」に参加できませんでした`);
             throw new Error("グループ参加失敗");
             
           }
