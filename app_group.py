@@ -18,8 +18,8 @@ import atexit
 
 def on_shutdown():
     print("Flaskアプリが終了されました")
-    print("chat.dbなどを削除します")
-    clean_files()
+    #print("chat.dbなどを削除します")
+    #clean_files()
 
 def clean_files():
     database_file = "chat.db"
@@ -49,18 +49,24 @@ atexit.register(on_shutdown)
 logging.getLogger('werkzeug').setLevel(logging.DEBUG)
 
 app = Flask(__name__)
-app.secret_key = os.getenv('APP_SECRET_KEY')
+
+if False:
+    app.secret_key = os.getenv('APP_SECRET_KEY')
+    file_secret_key = os.getenv('FILE_SECRET_KEY')
+    APP_PASSWORD = os.getenv('APP_PASSWORD')
+else:
+    app.secret_key = 'your_secret_key'
+    file_secret_key = 'gakdscy678uiojk3led'
+    APP_PASSWORD = 'goukikadan'
 
 is_test = True
 
-file_secret_key = os.getenv('FILE_SECRET_KEY')
 
 # === 設定 ===
 UPLOAD_FOLDER = 'uploads'
 ICON_FOLDER = 'icons'
 TOKEN_EXPIRATION_MINUTES = 10
 
-APP_PASSWORD = os.getenv('APP_PASSWORD')
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(ICON_FOLDER, exist_ok=True)
