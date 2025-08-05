@@ -168,7 +168,8 @@ def init_db():
                 password TEXT,
                 icon_is_default INTEGER DEFAULT 1,
                 icon_filename TEXT DEFAULT NULL,
-                last_comment_time INTEGER DEFAULT -1
+                last_comment_time INTEGER DEFAULT -1,
+                status_message TEXT DEFAULT NULL
             )
         ''')
         conn.execute('''
@@ -358,7 +359,7 @@ def get_groups():
         }
         groups.append(group)
 
-    print(f"returning groups: {groups}")
+    #print(f"returning groups: {groups}")
     return jsonify({
         "user": display_name,
         "user_icon": user_icon,
@@ -406,11 +407,13 @@ def create_group():
             CREATE TABLE IF NOT EXISTS {messages_table} (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT,
+                type TEXT,
                 text TEXT,
                 time TEXT,
                 read INTEGER,
                 email TEXT,
-                user_id INTEGER
+                user_id INTEGER,
+                reply_to INTEGER DEFAULT -1
             )
         """)
 
@@ -549,27 +552,31 @@ def chat(group_id):
         # メッセージ取得（名前だけでなく送信者のアイコンも含める場合はクエリ変更が必要）
         messages_table = f"messages_{group_id}"
         cur = conn.execute(
-            f"SELECT id, name, text, time, read, email FROM {messages_table}")
+            f"SELECT id, name, type, text, time, read, email, reply_to FROM {messages_table}")
         messages = []
-        for id, name, text, time_, read, email_ in cur.fetchall():
+        for id, name, type, text, time_, read, email_, reply_to in cur.fetchall():
             # 送信者のアイコン取得
             cur_icon = conn.execute(
-                "SELECT icon_filename, icon_is_default FROM users WHERE email=?",
+                "SELECT icon_filename, icon_is_default, id FROM users WHERE email=?",
                 (email_, ))
             icon_row = cur_icon.fetchone()
             icon_ = icon_row[0] if icon_row and icon_row[0] else None
             user_icon_is_default_ = icon_row[1] if icon_row else 1
+            user_id = icon_row[2] if icon_row else None
             messages.append({
                 "id": id,
                 "name": name,
+                "user_id": user_id,
+                "type": type,
                 "text": text,
                 "time": time_,
                 "read": read,
                 "email": email_,
+                "reply_to": reply_to,
                 "icon": icon_,
                 "icon_is_default": user_icon_is_default_
             })
-    print(f"returning messages: {messages}")
+    #print(f"returning messages: {messages}")
     return jsonify({"messages": messages, "file_secret_key": file_secret_key})
 
 
@@ -606,6 +613,7 @@ def upload():
     if not file:
         return "No file", 400
     group_id = request.form.get('group_id')
+    replyToId = request.form.get('replyTo')
     table_name = f"messages_{group_id}"
 
     filename = file.filename
@@ -622,13 +630,15 @@ def upload():
         row = cur.fetchone()
         name = row[0] if row else "Unknown"
         conn.execute(
-            f"INSERT INTO {table_name} (name, text, time, read, email) VALUES (?, ?, ?, ?, ?)",
-            (name, f"{file_secret_key}{filename}", now, 0, email))
+            f"INSERT INTO {table_name} (name, type, text, time, read, email, user_id, reply_to) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (name, "file", filename, now, 0, email, user_id, replyToId if replyToId else -1)
+        )
         conn.execute(
             '''
             UPDATE user_groups SET last_comment_time = ?
             WHERE user_id = ? AND group_id = ?
-        ''', (now_sec, user_id, group_id))
+        ''', (now_sec, user_id, group_id)
+    )
 
     return "Uploaded", 200
 
@@ -668,6 +678,7 @@ def update_profile():
     user_id = session.get('uid')
     new_name = request.form.get('name')
     icon = request.files.get('icon')
+    status_message = request.form.get('status_message')
     print(
         f"New name: {new_name}, New icon: {icon.filename if icon else 'None'}")
     print("updating database...")
@@ -687,6 +698,8 @@ def update_profile():
         if new_name:
             update_fields.append("display_name=?")
             update_values.append(new_name)
+        update_fields.append("status_message=?")
+        update_values.append(status_message)
 
         if icon and icon.filename:
             ext = os.path.splitext(secure_filename(icon.filename))[1]
@@ -748,6 +761,7 @@ def send_message():
     data = request.get_json()
     text = data.get('text')
     group_id = data.get('group_id')  # ★ クライアントから group_id を受け取る
+    replyToId = data.get('replyTo')
 
     if not group_id or not text:
         return jsonify({"status": "error", "message": "Invalid input"})
@@ -777,9 +791,9 @@ def send_message():
 
         conn.execute(
             f'''
-            INSERT INTO {table_name} (name, text, time, read, email)
-            VALUES (?, ?, ?, 0, ?)
-        ''', (name, text, now, email))
+            INSERT INTO {table_name} (name, type, text, time, read, email, user_id, reply_to)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (name, "text", text, now, 0, email, user_id, replyToId if replyToId else -1))
 
         conn.execute(
             '''
@@ -889,7 +903,7 @@ def user_info():
     with sqlite3.connect("chat.db") as db:
         db.row_factory = sqlite3.Row
         user = db.execute(
-            "SELECT id, display_name, icon_filename, icon_is_default, email FROM users WHERE id = ?",
+            "SELECT id, display_name, icon_filename, icon_is_default, email, status_message FROM users WHERE id = ?",
             (uid, )).fetchone()
         if not user:
             print("User not found")
@@ -901,7 +915,8 @@ def user_info():
             "name": user["display_name"],
             "iconUrl": ("/static/default.jpeg" if user["icon_is_default"] else
                         f"/icons/{user['icon_filename']}"),
-            "icon_is_default": user["icon_is_default"]
+            "icon_is_default": user["icon_is_default"],
+            "status_message": user["status_message"]
         })
 
 
@@ -940,6 +955,27 @@ def get_members(group_id):
                 member["last_comment_time"])
         #conn.commit()
         return jsonify(members)
+
+@app.route('/users/<user_id>')
+def get_user_info(user_id):
+    with sqlite3.connect("chat.db") as conn:
+        cur = conn.execute(
+            "SELECT display_name, icon_filename, icon_is_default, status_message FROM users WHERE id = ?",
+            (user_id, ))
+        row = cur.fetchone()
+        if row is None:
+            return jsonify({"status": "error", "message": "ユーザーが存在しません"}), 400
+        display_name = row[0]
+        icon_filename = row[1]
+        icon_is_default = row[2]
+        status_message = row[3]
+        return jsonify({
+            "status": "ok",
+            "display_name": display_name,
+            "icon_filename": icon_filename,
+            "icon_is_default": icon_is_default,
+            "status_message": status_message
+        })
 
 
 if __name__ == "__main__":

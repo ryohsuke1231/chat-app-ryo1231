@@ -2,13 +2,22 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>チャットルーム</title>
   <style>
-    body {
+    * {
+      box-sizing: border-box;
+    }
+    
+    body, html {
       font-family: 'Noto Sans JP', sans-serif;
       background: #f5f6fa;
       margin: 0;
       padding: 0;
+      height: 100%;
+      overflow-x: hidden;
+      width: 100%;
     }
 
     .custom-dialog {
@@ -196,89 +205,152 @@
       object-fit: cover;
     }
 
+    #container,
+    #chat-section,
+    #messagesArea {
+      box-sizing: border-box;
+    }
+
     #container {
       display: flex;
       height: calc(100vh - 50px);
+      min-width: 0;
+      width: 100%;
     }
 
     #main {
-      flex: 3;
-      /*padding: 0;*/
-      height: 100%;
-      background: white;
       display: flex;
       flex-direction: column;
+      height: 100%; /* 画面全体使う or 必要に応じて調整 */
+      width: 100%;
+      background: white;
+      min-width: 0;
+      overflow: auto;
     }
 
     #chat {
+      position: relative;
+      flex: 1; /* 上の領域をめいっぱい使う */
+      display: flex;
+      flex-direction: column;
+      overflow: auto;
+      overflow-y: auto;
+      min-height: 0;
+      min-width: 0;
+      width: 100%;
+    }
+
+    #messagesArea {
+      -webkit-overflow-scrolling: touch;
       flex: 1;
+      overflow-y: auto;
+      height: 100%;
+      width: 100%;
+      padding: 10px;
+      background-color: #90d0ff;
       border: 1px solid #ccc;
       padding: 10px;
-      overflow-y: auto;
-      margin-bottom: 0;
-      margin: 0 20px 0 20px;
-      background-color: #ecf0f1;
+      padding-bottom: 50px;
+      min-width: 0;
     }
 
     #inputArea {
       display: flex;
-      padding: 10px 20px;
-      background-color: #fdfdfd;
-      border-top: 1px solid #ccc;
-      margin: 0 20px 20px 20px;
-      gap: 10px;
+      flex-wrap: wrap;
       align-items: center;
+      gap: 10px;
+      padding: 16px 20px;
+      background-color: #ffffff;
+      border-top: 1px solid #ccc;
       position: sticky;
       bottom: 0;
       z-index: 100;
-      padding: 12px 20px;
     }
-    #inputArea input[type="text"] {
+
+    input[type="text"] {
       flex: 1;
-      padding: 10px 20px;
+      padding: 14px 20px;
       border: 1px solid #ccc;
-      border-radius: 20px;
+      border-radius: 25px;
       font-size: 1em;
       background-color: #f9f9f9;
-      transition: border-color 0.2s;
+      transition: border-color 0.2s, box-shadow 0.2s;
       outline: none;
+      min-width: 200px;
     }
+
+    input[type="text"]:focus {
+      border-color: #74b9ff;
+      background-color: #fff;
+      box-shadow: 0 0 4px rgba(0, 132, 255, 0.2);
+    }
+
+    #text {
+      flex: 1;
+      padding: 14px 20px;
+      border: 1px solid #ccc;
+      border-radius: 25px;
+      font-size: 1em;
+      background-color: #f9f9f9;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+      min-width: 200px;
+    }
+
     #inputArea input[type="text"]:focus {
       border-color: #74b9ff;
       background-color: #fff;
+      box-shadow: 0 0 4px rgba(0, 132, 255, 0.2);
     }
-    #inputArea button, .file-btn {
-      padding: 8px 12px;
+
+    
+    #inputArea button,
+    .file-btn {
+      padding: 10px 18px;
       border: none;
-      border-radius: 20px;
+      border-radius: 25px;
+      font-size: 0.95em;
       background-color: #0984e3;
       color: white;
       cursor: pointer;
-      font-size: 1em;
-      transition: background-color 0.2s;
+      transition: background-color 0.2s, box-shadow 0.2s;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
-    #inputArea button:hover, .file-btn:hover {
+
+    #inputArea button:hover,
+    .file-btn:hover {
       background-color: #74b9ff;
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
     }
+
     .file-btn {
       background-color: #dfe6e9;
       color: #2d3436;
-      align-items: center;
-      justify-content: center;
-      display: flex;
+    }
+
+    #fileNameDisplay {
+      font-size: 0.9em;
+      margin-left: 10px;
+      font-weight: bold;
+      color: #636e72;
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .msg {
-      max-width: 60%;
+      max-width: 100%;
       margin: 5px;
       padding: 10px;
       border-radius: 10px;
       clear: both;
       position: relative;
+      display: flex;
     }
 
     .left {
-      background-color: #999999;
+      background-color: #fff;
       float: left;
     }
 
@@ -326,13 +398,27 @@
     }
 
     .msg.right .header {
-      flex-direction: row-reverse;
+      display: flex;
       justify-content: flex-end;
     }
 
+    .msg.left .header {
+      display: flex;
+      justify-content: flex-start;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 8px; /* 要素間の横の隙間 */
+      padding: 0 8px;
+    }
+
     .text {
-      margin-top: 5px;
+      
+      min-width: 200px;
       word-break: break-word;
+      overflow-wrap: break-word;
     }
 
     .meta {
@@ -345,6 +431,7 @@
       border-radius: 50%;
       width: 28px;
       height: 28px;
+      object-fit: cover;
     }
 
     #sidebar {
@@ -372,18 +459,24 @@
       border-bottom: 1px solid #eee;
     }
 
-    input[type="text"],
     input[type="file"] {
-      padding: 8px;
-      margin-right: 10px;
-      border-radius: 4px;
+      padding: 14px 20px;
       border: 1px solid #ccc;
+      border-radius: 25px;
+      font-size: 1em;
+      background-color: #f9f9f9;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+      cursor: pointer;
+      width: 300px;  /* お好みの幅に調整 */
+      max-width: 100%; /* 親要素からはみ出さないように */
+      box-sizing: border-box; /* パディング込みで幅調整 */
     }
-
+    
     button {
       padding: 8px 14px;
       border: none;
-      border-radius: 5px;
+      border-radius: 10px;
       background-color: #0984e3;
       color: white;
       cursor: pointer;
@@ -398,13 +491,76 @@
       top: 20%;
       left: 50%;
       transform: translate(-50%, -20%);
-      background-color: white;
       border: 1px solid #ccc;
       padding: 20px;
       border-radius: 8px;
       box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
       z-index: 1000;
       min-width: 300px;
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.4);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-content {
+      background: #fff;
+      padding: 24px;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      text-align: left;
+    }
+
+    .modal-content h2 {
+      margin-top: 0;
+      margin-bottom: 16px;
+      font-size: 1.5em;
+      color: #333;
+    }
+
+    .user-info-item {
+      margin-bottom: 16px;
+    }
+
+    .label {
+      font-weight: bold;
+      color: #555;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .value {
+      color: #222;
+      font-size: 1em;
+    }
+
+    .user-icon {
+      height: 64px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+
+    .modal-actions {
+      text-align: center;
+    }
+
+    .modal-actions button {
+      padding: 10px 20px;
+      background-color: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1em;
+      transition: background-color 0.2s;
+    }
+
+    .modal-actions button:hover {
+      background-color: #43a047;
     }
     /* メニューの基本スタイル */
     .group-action-menu {
@@ -455,6 +611,59 @@
     .multiline-text {
       white-space: pre-wrap;
     }
+    .replied {
+      font-size: 13px;
+      color: #555;
+      padding: 4px 8px;
+      border-left: 2px solid #4caf50;
+      margin-bottom: 6px;
+      background-color: #d1d1d1;
+      border-radius: 4px;
+    }
+    
+    .highlight {
+      animation: blink 2.0s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0% {
+        background-color: transparent;
+      }
+      50% {
+        background-color: yellow;
+      }
+      100% {
+        background-color: transparent; /* JSで上書きするのでここは透明でOK */
+      }
+    }
+
+    #scrollToBottomBtn {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      z-index: 10;
+      padding: 6px 10px;
+      border-radius: 50%;
+      background: #2196f3;
+      color: white;
+      border: none;
+      font-size: 18px;
+      cursor: pointer;
+      display: none;
+    }
+
+    #messagesArea::after {
+      content: "";
+      display: table;
+      clear: both;
+    }
+    #menu-btn {
+      cursor: pointer;
+      font-size: 18px; /* アイコンの大きさ調整 */
+      color: #333;
+      user-select: none;
+    }
+
   </style>
 </head>
 <body>
@@ -486,10 +695,22 @@
         <button id="createGroupBtn" onclick="showCreateGroupModal()">グループ新規作成</button>
         <button id="joinGroupBtn" onclick="join_group()">グループに参加</button>
       </div>
+      <div id="notGroupSelected" style="text-align:center; margin-top: 40px;">
+        <h2>グループを選択して友達とチャットしましょう！</h2>
+        <p>「グループ一覧」からグループを選択、もしくは下のボタンからグループを作成、または参加してください。</p>
+        <button id="createGroupBtn" onclick="showCreateGroupModal()">グループ新規作成</button>
+        <button id="joinGroupBtn" onclick="join_group()">グループに参加</button>
+      </div>
 
-      <div id="chat"></div>
-
+      <div id="chat">
+        <div id="messagesArea"></div>
+        <button id="scrollToBottomBtn">↓</button>
+      </div>
       <!-- 送信エリア -->
+      <div id="reply-preview" style="display:none; padding:6px; background:#f5f5f5; border-left:4px solid #4caf50;">
+        <span id="reply-info"></span>
+        <button onclick="cancelReply()" style="float:right;">✕</button>
+      </div>
       <div id="inputArea">
         <input id="text" placeholder="メッセージを入力..." />
         <button id="sendBtn" onclick="send()">送信</button>
@@ -520,23 +741,31 @@
   </div>
   <!-- モーダル（プロフィール設定） -->
   <div id="settingsModal" class="modal" style="display: none;">
-    <h3>プロフィール設定</h3>
-    <label>表示名:<br>
-      <input type="text" id="displayNameInput">
-    <!--<label>メールアドレス:<br>-->
-      <!--<input type="text" id="emailInput" value="{{ email }}">-->
-    <!--<label>パスワード<br>-->
-      <!--<input type="password" id="passwordInput" placeholder="新しいパスワードを入力">-->
-    </label><br><br>
-    <label>現在のアイコン:</label><br>
-    <img id="currentIconPreview" src="/static/default.jpeg" alt="現在のアイコン" height="64"><br><br>
-    <label for="icon">アイコン画像 (指定しない場合は今のアイコンが使用されます):</label><br>
-    <input type="file" name="icon" accept="image/*" id="iconInput"><br><br>
-    <button id="permission_notification" type="button">通知設定</button>
-    <button id="logout" type="button">ログアウト</button>
-    <button id="saveSettings" type="button">保存</button>
-    <button id="closeSettings" type="button">キャンセル</button>
+    <div class="modal-content">
+      <h3>プロフィール設定</h3>
+      <label>表示名:<br>
+        <input type="text" id="displayNameInput">
+      </label>
+      <br><br>
+
+      <label>現在のアイコン:</label><br>
+      <img id="currentIconPreview" src="/static/default.jpeg" alt="現在のアイコン" height="64"><br><br>
+
+      <label for="icon">アイコン画像 (指定しない場合は今のアイコンが使用されます):</label><br>
+      <input type="file" name="icon" accept="image/*" id="iconInput"><br>
+
+      <label>ステータスメッセージ:<br>
+        <input type="text" id="statusMessageInput">
+      </label>
+      <br><br>
+
+      <button id="permission_notification" type="button">通知設定</button>
+      <button id="logout" type="button">ログアウト</button>
+      <button id="saveSettings" type="button">保存</button>
+      <button id="closeSettings" type="button">キャンセル</button>
+    </div>
   </div>
+
   <div id="customDialog" class="custom-dialog">
     <div class="custom-dialog-content">
       <p id="customDialogMessage" class="multiline-text
@@ -544,37 +773,59 @@
       <div id="customDialogButtons" class="custom-dialog-buttons"></div>
     </div>
   </div>
-  
+  <div id="userInfoModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h2>ユーザー情報</h2>
+      <div class="user-info-item">
+        <span class="label">表示名:</span>
+        <span id="userName" class="value"></span>
+      </div>
+      <div class="user-info-item">
+        <span class="label">アイコン:</span>
+        <img id="userIcon" src="/static/default.jpeg" alt="ユーザーアイコン" class="user-icon">
+      </div>
+      <div class="user-info-item">
+        <span class="label">ステータスメッセージ:</span>
+        <span id="userStatusMessage" class="value"></span>
+      </div>
+      <div class="modal-actions">
+        <button id="closeUserInfoModal" type="button">閉じる</button>
+      </div>
+    </div>
+  </div>
   <div id="createGroupModal" class="modal" style="display: none;">
-    <h3>グループ作成</h3>
-    <label>グループ名:<br>
-      <input type="text" id="groupNameInput">
-    </label><br>
-    <label>グループのアイコン（指定しない場合はデフォルトのアイコンが使用されます<br>
-      <input type="file" name="groupIcon" accept="image/*" id="groupIconInput">
-    </label><br>
-    <button id="createGroupBtn2" type="button" onclick="create_group()">グループを作成</button>
-    <button id="closeCreateGroupModal" type="button" onclick="close_create_group_modal()">キャンセル</button>
+    <div class="modal-content">
+      <h3>グループ作成</h3>
+      <label>グループ名:<br>
+        <input type="text" id="groupNameInput">
+      </label><br>
+      <label>グループのアイコン（指定しない場合はデフォルトのアイコンが使用されます）<br>
+        <input type="file" name="groupIcon" accept="image/*" id="groupIconInput">
+      </label><br>
+      <button id="createGroupBtn2" type="button" onclick="create_group()">グループを作成</button>
+      <button id="closeCreateGroupModal" type="button" onclick="close_create_group_modal()">キャンセル</button>
+    </div>
   </div>
 
   <div id="groupSettingsModal" class="modal" style="display: none;">
-    <h3>グループ設定</h3>
-    <label>グループ名:<br>
-      <input type="text" id="groupNameInput2">
-    </label><br>
-    <label>グループのアイコン（指定しない場合は今のアイコンが使用されます）<br>
-      <input type="file" name="groupIcon" accept="image/*" id="groupIconInput2">
-    </label><br>
-    <label>今のグループのアイコン<br>
-      <img id="currentGroupIconPreview" src="/static/default.jpeg" alt="現在のアイコン" height="64"><br>
-    </label>
-    <button id="saveGroupSettings" type="button">保存</button>
-    <button id="closeGroupSettings" type="button">キャンセル</button>
-
-</body>
+    <div class="modal-content">
+      <h3>グループ設定</h3>
+      <label>グループ名:<br>
+        <input type="text" id="groupNameInput2">
+      </label><br>
+      <label>グループのアイコン（指定しない場合は今のアイコンが使用されます）<br>
+        <input type="file" name="groupIcon" accept="image/*" id="groupIconInput2">
+      </label><br>
+      <label>今のグループのアイコン<br>
+        <img id="currentGroupIconPreview" src="/static/default.jpeg" alt="現在のアイコン" height="64"><br>
+      </label>
+      <button id="saveGroupSettings" type="button">保存</button>
+      <button id="closeGroupSettings" type="button">キャンセル</button>
+    </div>
+  </div>
 
   <!-- JavaScript は元のままでOK -->
-  <script>
+  <script defer>
     
     window.addEventListener("error", function (event) {
       const errorMessage = {
@@ -623,31 +874,74 @@
 
     function showEmptyState() {
       document.getElementById("emptyState").style.display = "block";
+      document.getElementById("notGroupSelected").style.display = "none";
       document.getElementById("chat").style.display = "none";
       document.getElementById("inputArea").style.display = "none";
       document.getElementById("members-section").style.display = "none";
       document.getElementById("noneGroups").style.display = "block";
       document.getElementById("groupList").style.display = "none";
+      document.getElementById("welcomeMessage").textContent = "ようこそ {{ user }} さん！";
+      //document.getElementById("scrollToBottomBtn").style.display = "none";
     }
 
+    function showNotChosenGroup() {
+      document.getElementById("emptyState").style.display = "none";
+      document.getElementById("notGroupSelected").style.display = "block";
+      document.getElementById("chat").style.display = "none";
+      document.getElementById("inputArea").style.display = "none";
+      document.getElementById("members-section").style.display = "none";
+      document.getElementById("noneGroups").style.display = "none";
+      document.getElementById("groupList").style.display = "block";
+      document.getElementById("welcomeMessage").textContent = "ようこそ {{ user }}さん！";
+    }
+
+    // メッセージ部分だけ追加する関数に変える
     function showChatUI() {
       document.getElementById("emptyState").style.display = "none";
+      document.getElementById("notGroupSelected").style.display = "none";
       document.getElementById("chat").style.display = "block";
-      document.getElementById("chat").innerHTML = "";
+      clearMessagesOnly();  // ← ここでボタンを消さずにメッセージだけ消す
       document.getElementById("inputArea").style.display = "flex";
       document.getElementById("members-section").style.display = "block";
       document.getElementById("noneGroups").style.display = "none";
       document.getElementById("groupList").style.display = "block";
+      //document.getElementById("scrollToBottomBtn").style.display = "block";
     }
+
+    function clearMessagesOnly() {
+      const messagesArea = document.getElementById("messagesArea");
+      if (messagesArea) messagesArea.innerHTML = ""; // メッセージだけ消す
+    }
+
+    const chat = document.getElementById("messagesArea");
+    const scrollBtn = document.getElementById("scrollToBottomBtn");
+
+    // スクロール状態を監視
+    chat.addEventListener('scroll', () => {
+      const nearBottom = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 100;
+      scrollBtn.style.display = nearBottom ? 'none' : 'block';
+    });
+
+    // ボタンクリックで一番下へ
+    scrollBtn.addEventListener('click', () => {
+      chat.scrollTo({
+        top: chat.scrollHeight,
+        behavior: 'smooth'
+      });
+    });
+
+
 
     let currentMenu = null;
     let currentEditingGroupId = null;
+
+    let replyingTo = null;  // null or { id: xxx, name: "〇〇", text: "..." }
 
     async function renderGroupList(groups) {
       if (groups.length === 0){
         showEmptyState();
       }else{
-        showChatUI();
+        showNotChosenGroup();
       }
       const groupList = document.getElementById('groupList');
       groupList.innerHTML = '';  // 一度クリア
@@ -887,11 +1181,15 @@
     window.addEventListener('click', (event) => {
       if (currentMenu && !currentMenu.contains(event.target)) {
         closeCurrentMenu();
+        closeMessageMenu();
       }
     });
     window.addEventListener('touchstart', (event) => {
       if (currentMenu && !currentMenu.contains(event.target)) {
         closeCurrentMenu();
+      }
+      if (window.currentOpenMenu && !window.currentOpenMenu.contains(event.target)) {
+        closeMessageMenu();
       }
     });
 
@@ -1030,6 +1328,9 @@
 
       options.forEach(option => {
         const btn = document.createElement("button");
+        btn.style.fontSize = "1em";
+        btn.style.margin = "5px";
+        btn.borderRadius = "20px"
         btn.textContent = option.text;
         btn.onclick = () => {
           if (option.close){
@@ -1144,8 +1445,14 @@
 
     // ソートのイベントハンドラ
     document.addEventListener("DOMContentLoaded", () => {
+      // 最初にshowEmptyStateを呼び出す（window.onloadだと実行されない？のかな）
+      showEmptyState();
+      
       // ログアウトボタン
       document.getElementById("logout").onclick = logout;
+      document.getElementById("closeUserInfoModal").onclick = () => {
+        document.getElementById("userInfoModal").style.display = "none";
+      };
 
       // 設定ボタンとモーダル閉じる
       document.getElementById("settingsBtn").onclick = openSettings;
@@ -1163,6 +1470,7 @@
       const fileInput = document.getElementById("fileInput");
       const fileSelectBtn = document.getElementById("fileSelectBtn");
       const fileNameDisplay = document.getElementById("fileNameDisplay");
+      const statusMessageInput = document.getElementById("statusMessageInput");
 
       fileInput.addEventListener("change", () => {
         if (fileInput.files.length > 0) {
@@ -1206,7 +1514,82 @@
       return JSON.stringify(a) === JSON.stringify(b);
     }
 
+    function showReplyBox() {
+      const replyBox = document.getElementById('reply-preview');
+      const replyInfo = document.getElementById('reply-info');
+      replyBox.style.display = 'block';
+      replyInfo.textContent = `返信先：${replyingTo.name}「${replyingTo.text.slice(0, 30)}...」`;
+    }
+
+    function cancelReply() {
+      replyingTo = null;
+      document.getElementById('reply-preview').style.display = 'none';
+    }
+
+    async function jumpToReplied(id) {
+      //const repliedMessage = messages.find(m => m.id === replyingTo.id);
+      const repliedMessage = messages.find(m => m.id === id);
+      if (repliedMessage) {
+        const chat = document.getElementById("messagesArea");
+        const repliedElement = chat.querySelector(`[msg_id="${repliedMessage.id}"]`); // msg-content
+        if (repliedElement) {
+          const msgBubble = repliedElement.closest('.msg'); // 一番近い親の .msg を取得
+          if (msgBubble) {
+            msgBubble.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // 300ms待ってからハイライト
+            setTimeout(() => {
+              highlightElement(msgBubble);
+            }, 300);
+          }
+        }
+      }
+    }
+    // ハイライトをつける関数例
+    function highlightElement(el) {
+      
+      const originalBg = window.getComputedStyle(el).backgroundColor;
+      // すでに以前のstyleが存在していたら削除する
+      const oldStyle = document.getElementById('highlight-style');
+      if (oldStyle) {
+        oldStyle.remove();
+      }
+      const style = document.createElement("style");
+      style.id = "highlight-style"; // 一意のIDをつける
+      style.type = "text/css";
+      style.innerHTML = `
+      @keyframes blink {
+        0% { background-color: ${originalBg}; }
+        50% { background-color: yellow; }
+        100% { background-color: ${originalBg}; }
+      }
+      `;
+      
+      document.head.appendChild(style);
+
+      el.style.animation = 'none'; // 一旦アニメーションリセット
+      el.offsetHeight; // リフロー強制（再起動用）
+      el.style.animation = 'blink 1s ease-in-out forwards';
+
+      // アニメーション終了時に元の背景色を戻す
+      el.addEventListener('animationend', () => {
+        el.style.backgroundColor = originalBg;
+        el.style.animation = '';
+      }, { once: true });
+    }
+
+    async function showUserInfo(user_id) {
+      const res = await fetch(`/users/${user_id}`);
+      const user = await res.json();
+      const modal = document.getElementById("userInfoModal");
+      modal.style.display = "block";
+      document.getElementById("userName").textContent = user.display_name;
+      document.getElementById("userIcon").src = user.icon_is_default ? "/static/default.jpeg" : `/icons/${user.icon_filename}`;
+      document.getElementById("userStatusMessage").textContent = user.status_message;
+      
+    }
+
     //let latestMessageId = -1;
+    let nowReplyingMessage = null;
     async function loadMessages(groupId) {
       //groupId = String(groupId);
       if (isGroupSelected === false){
@@ -1219,7 +1602,7 @@
       const res2 = await fetch("/api/user-info");
       if (!res2.ok) {
         //alert("ユーザー情報の取得に失敗しました。");
-        showDialog("ユーザー情報の取得に失敗しました。", [
+        showDialog("ユーザー情報の取得に失敗しました。\nアプリケーションが終了、または停止している可能性があります。", [
           {text: "再試行", action: () => loadMessages(currentGroupId)},
           {text: "ログアウト", action: logout}
         ]);
@@ -1239,7 +1622,7 @@
         return;
       }
       //sendMessageToPython("loadMessages: " + String(data));
-      const chat = document.getElementById("chat");
+      const chat = document.getElementById("messagesArea");
       //chat.innerHTML = "";
       const file_secret_key = data.file_secret_key;
       let shouldScroll = chat.scrollTop + chat.clientHeight >= chat.scrollHeight - 10;
@@ -1248,9 +1631,25 @@
       messages = data.messages;
       messages.forEach(msg => {
         if (msg.id <= latestMessageId) return;  // すでに表示済みならスキップ
+        const reply_to = msg.reply_to;
+        let repliedHTML = '';
+        if (msg.reply_to !== -1) {
+          const replied = messages.find(m => m.id === msg.reply_to);
+          if (replied) {
+            repliedHTML = `
+              <div class="replied" onclick="jumpToReplied(${reply_to})" style="font-size: 12px; color: #555; padding: 4px 8px; border-left: 2px solid #4caf50; margin-bottom: 6px;">
+                ↪︎ <strong>${replied.name}</strong>: ${replied.text.slice(0, 20)}...
+              </div>
+            `;
+          }
+        }
+
         const isMine = msg.email === userEmail;
         const side = isMine ? "right" : "left";
+        const side2 = isMine ? "left" : "right";
         const bubble = document.createElement("div");
+
+         
         //bubble.className = `msg ${side}`;
         var iconUrl = "before change"
         if (msg.icon_is_default) {
@@ -1258,23 +1657,36 @@
         } else {
           iconUrl = `/icons/${msg.icon}`;
         }
-        bubble.className = `msg ${side}`
+        bubble.className = `msg ${side}`;
+        const headerContent = isMine
+          ? `
+              <strong>${msg.name}</strong>
+              <img src=${iconUrl} class="icon" height="24" onclick="showUserInfo(${msg.user_id})"/>
+              <i class="fas fa-ellipsis-v" id="menu-btn"></i>
+            `
+          : `
+              <i class="fas fa-ellipsis-v" id="menu-btn"></i>
+              <img src=${iconUrl} class="icon" height="24" onclick="showUserInfo(${msg.user_id})"/>
+              <strong>${msg.name}</strong>
+            `;
+
         bubble.innerHTML = `
-          <div class="msg-content">
+          <div class="msg-content" msg_id=${msg.id}>
             <div class="bubble">
-              <div class="header">
-                <img src=${iconUrl} class="icon" height="24" />
-                <strong>${msg.name}</strong>
+              <div class="header" style="display:flex; justify-content: ${isMine ? "flex-end" : "flex-start"};">
+                ${headerContent}
               </div>
               <div class="text">
-                ${msg.text.startsWith(file_secret_key)
-                  ? `<a href="/files/${msg.text.replace(file_secret_key, "")}" target="_blank">${msg.text.replace(file_secret_key, "")}</a>`
+                ${repliedHTML}
+                ${msg.type === "file"
+                  ? `<a href="/files/${msg.text}" target="_blank">${msg.text}</a>`
                   : msg.text}
               </div>
               <div class="meta">${msg.time}</div>
             </div>
           </div>
         `;
+
 
         //bubble.style.backgroundColor = isMine ? "#acf" : "#808080";
         //bubble.style.color = isMine ? "#000" : "#333";
@@ -1283,6 +1695,100 @@
         bubble.style.margin = "5px";
         bubble.style.clear = "both";
         bubble.style.position = "relative";
+
+        const messageMenuBtn = bubble.querySelector('#menu-btn');
+
+        messageMenuBtn.onclick = (event) => {
+          event.stopPropagation();
+          closeCurrentMenu();
+          closeMessageMenu();
+
+          // メニュー作成
+          const menu = document.createElement('div');
+          menu.style.position = 'absolute';
+          const rect = messageMenuBtn.getBoundingClientRect();
+
+          const menuWidth = 160; // メニューの幅。style.width と合わせるか、menu.offsetWidth で取得しても良い
+
+          // 初期のメニュー位置（左上）
+          let top = rect.bottom + window.scrollY;
+          let left = rect.left + window.scrollX;
+
+          // 画面の右端をはみ出すかチェックして調整
+          if (left + menuWidth > window.scrollX + window.innerWidth) {
+            // はみ出すなら、メニューをボタンの右端ではなく左端に表示する
+            left = rect.right + window.scrollX - menuWidth;
+          }
+
+          menu.style.top = `${top}px`;
+          menu.style.left = `${left}px`;
+          menu.style.background = 'white';
+          menu.style.border = '1px solid #ccc';
+          menu.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+          menu.style.borderRadius = '4px';
+          menu.style.padding = '4px 0';
+          menu.style.zIndex = 1000;
+          menu.style.width = '160px';
+          menu.style.fontSize = '14px';
+
+          // メニュー項目①：IDを表示
+          const replyMenu = document.createElement('div');
+          replyMenu.textContent = 'リプライ';
+          replyMenu.style.padding = '6px 12px';
+          replyMenu.style.cursor = 'pointer';
+          replyMenu.onmouseenter = () => { replyMenu.style.backgroundColor = '#eee'; }
+          replyMenu.onmouseleave = () => { replyMenu.style.backgroundColor = 'white'; }
+            replyMenu.onclick = (event) => {
+            event.stopPropagation();
+            closeMessageMenu();
+            //alert('グループ情報の表示機能をここに追加');
+            // toggleShowGroupId(...);
+
+            replyingTo = {
+              id: msg.id,
+              name: msg.name,
+              text: msg.text
+            };
+            showReplyBox();
+          };
+
+          // メニュー項目②：設定
+          const copyMessage = document.createElement('div');
+          copyMessage.textContent = 'メッセージをコピー';
+          copyMessage.style.padding = '6px 12px';
+          copyMessage.style.cursor = 'pointer';
+          copyMessage.onmouseenter = () => { copyMessage.style.backgroundColor = '#eee'; }
+          copyMessage.onmouseleave = () => { copyMessage.style.backgroundColor = 'white'; }
+          copyMessage.onclick = (event) => {
+            event.stopPropagation();
+            closeMessageMenu();
+
+            copyString(msg.text);
+            //alert('設定画面へ');
+            // currentEditingGroupId = group.id;
+            // renderGroupList(groups);
+          };
+
+          // キャンセルボタン：メニューを閉じる
+          const closeMenu = document.createElement('div');
+          closeMenu.textContent = 'キャンセル';
+          closeMenu.style.padding = '6px 12px';
+          closeMenu.style.cursor = 'pointer';
+          closeMenu.onmouseenter = () => { closeMenu.style.backgroundColor = '#eee'; }
+          closeMenu.onmouseleave = () => { closeMenu.style.backgroundColor = 'white'; }
+          closeMenu.onclick = (event) => {
+            event.stopPropagation();
+            closeMessageMenu();
+          };
+
+          menu.appendChild(replyMenu);
+          menu.appendChild(copyMessage);
+          menu.appendChild(closeMenu);
+          document.body.appendChild(menu);
+
+          // メニューを閉じる処理を登録
+          window.currentOpenMenu = menu;
+        };
     
         if (msg.id > latestMessageId) {
           latestMessageId = msg.id;
@@ -1304,6 +1810,13 @@
       loadMembers(currentGroupId);
     }
 
+    function closeMessageMenu() {
+      if (window.currentOpenMenu) {
+        window.currentOpenMenu.remove();
+        window.currentOpenMenu = null;
+      }
+    }
+
     async function send() {
       if (isGroupSelected === false){
         sendMessageToPython("グループ未選択でメッセージ送信を試みました");
@@ -1318,7 +1831,7 @@
       const res = await fetch("api/user-info");
         if(!res.ok) {
           //alert("ユーザー情報の取得に失敗しました。");
-          showDialog("ユーザー情報の取得に失敗しました。", [
+          showDialog("ユーザー情報の取得に失敗しました。\nアプリケーションが終了、または停止している可能性があります。", [
             {text: "再試行", action: () => loadMessages(currentGroupId)},
             {text: "ログアウト", action: logout}
           ])
@@ -1330,7 +1843,7 @@
       const res2 = await fetch("/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: user.name, text: text, group_id: currentGroupId})
+        body: JSON.stringify({ name: user.name, text: text, group_id: currentGroupId, replyTo: replyingTo ? replyingTo.id : null})
       });
       //sendMessageToPython("メッセージ送信: " + text);
       const data = await res2.json()
@@ -1338,6 +1851,13 @@
         document.getElementById("text").value = "";
         await loadMessages(currentGroupId);
         sendMessageToPython("メッセージ送信成功: " + text);
+        document.getElementById("messagesArea").scrollTo({
+          top: chat.scrollHeight,
+          behavior: 'smooth'
+        });
+        if (replyingTo) {
+          cancelReply();
+        }
         loadMembers(currentGroupId);
       }else {
         alert("メッセージの送信に失敗しました。¥nエラーメッセージ：" + data.message);
@@ -1357,6 +1877,7 @@
       const formData = new FormData();
       formData.append("file", fileInput.files[0]);
       formData.append("group_id", currentGroupId);
+      formData.append("replyTo", replyingTo ? replyingTo.id : null);
 
       const res = await fetch("/upload", {
         method: "POST",
@@ -1394,7 +1915,7 @@
 
       const res = await fetch("api/user-info");
       if(!res.ok) {
-        alert("ユーザー情報の取得に失敗しました。");
+        alert("ユーザー情報の取得に失敗しました。\nアプリケーションが終了、または停止している可能性があります。");
         sendMessageToPython("ユーザー情報取得失敗");
         return;
       }
@@ -1403,6 +1924,7 @@
       document.getElementById("displayNameInput").value = user.name;
       document.getElementById("iconInput").value = "";
       document.getElementById("currentIconPreview").src = user.iconUrl;
+      document.getElementById("statusMessageInput").value = user.status_message;
     }
 
     async function requestNotificationPermission() {
@@ -1439,6 +1961,9 @@
       if (fileInput.files.length > 0) {
         formData.append("icon", fileInput.files[0]);
       }
+
+      const statusMessage = document.getElementById("statusMessageInput").value;
+      formData.append("status_message", statusMessage);
       //sendMessageToPython("プロフィール更新: " + formData.get("name") + ", アイコン: " + formData.get("icon"))
 
       const newName = formData.get("name");
@@ -1525,5 +2050,5 @@
     //loadMembers();
 
   </script>
-  
+  </body>  
 </html>
