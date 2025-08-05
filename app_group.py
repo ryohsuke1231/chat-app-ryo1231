@@ -50,14 +50,15 @@ logging.getLogger('werkzeug').setLevel(logging.DEBUG)
 
 app = Flask(__name__)
 
-if False:
+if True:
     app.secret_key = os.getenv('APP_SECRET_KEY')
     file_secret_key = os.getenv('FILE_SECRET_KEY')
     APP_PASSWORD = os.getenv('APP_PASSWORD')
 else:
-    app.secret_key = 'your_secret_key'
-    file_secret_key = 'gakdscy678uiojk3led'
-    APP_PASSWORD = 'goukikadan'
+    #app.secret_key = 'your_secret_key'
+    #file_secret_key = 'gakdscy678uiojk3led'
+    #APP_PASSWORD = 'goukikadan'
+    print("test mode")
 
 is_test = True
 
