@@ -153,6 +153,11 @@
       }
 
       setupMaskedInput("password_display", "password_real");
+
+      const device_type = {{ device_type | tojson }};
+      if (device_type === "mobile") {
+        alert("このアプリはPC用に設計されているため、モバイル端末で利用すると見づらい、操作しにくい場合がございます。");
+      }
     </script>
   </body>
 </html>

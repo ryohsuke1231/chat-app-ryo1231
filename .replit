@@ -12,7 +12,7 @@ localPort = 5000
 externalPort = 80
 
 [workflows]
-runButton = "Run Flask App"
+runButton = "Run socket app"
 
 [[workflows.workflow]]
 name = "Run Flask App"
@@ -35,3 +35,12 @@ author = 44606325
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python reset_files.py"
+
+[[workflows.workflow]]
+name = "Run socket app"
+mode = "sequential"
+author = 44606325
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python app_socket.py"

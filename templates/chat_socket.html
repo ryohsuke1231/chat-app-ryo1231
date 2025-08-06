@@ -689,13 +689,13 @@
 
     <div id="main">
       <!-- グループ未選択時の案内エリア -->
-      <div id="emptyState" style="text-align:center; margin-top: 40px;">
+      <div id="emptyState" style="text-align:center; margin-top: 40px; display: none;">
         <h2>グループに参加して友達とチャットしましょう！</h2>
         <p>下のボタンからグループを作成、または参加してください。</p>
         <button id="createGroupBtn" onclick="showCreateGroupModal()">グループ新規作成</button>
         <button id="joinGroupBtn" onclick="join_group()">グループに参加</button>
       </div>
-      <div id="notGroupSelected" style="text-align:center; margin-top: 40px;">
+      <div id="notGroupSelected" style="text-align:center; margin-top: 40px; display: none;">
         <h2>グループを選択して友達とチャットしましょう！</h2>
         <p>「グループ一覧」からグループを選択、もしくは下のボタンからグループを作成、または参加してください。</p>
         <button id="createGroupBtn" onclick="showCreateGroupModal()">グループ新規作成</button>
@@ -825,7 +825,8 @@
   </div>
 
   <!-- JavaScript は元のままでOK -->
-  <script defer>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script>
     
     window.addEventListener("error", function (event) {
       const errorMessage = {
@@ -856,6 +857,9 @@
       });
     });
 
+    const socket = io({
+      withCredentials: true  // Cookieを含めて送る
+    });
     
     window.onload = function () {
       // グループに未参加であれば emptyState を表示
@@ -1255,6 +1259,7 @@
           //alert(`グループID: ${data.group_id} (このIDで他のユーザーに招待してください)`);
 
           // グループリスト再取得など
+          /*
           const res2 = await fetch ("/join_group", {
             method: "POST",
             headers: {
@@ -1272,6 +1277,8 @@
             throw new Error("グループ参加失敗");
             
           }
+          */
+          socket.emit("join_group", { group_id: data.group_id });
         } else {
           alert("グループ作成に失敗しました: " + data.message);
         }
@@ -1294,6 +1301,7 @@
       if (!groupId) return;
 
       try {
+        /*
         const res = await fetch("/join_group", {
           method: "POST",
           headers: {
@@ -1311,6 +1319,8 @@
         } else {
           alert("参加に失敗しました: " + data.message);
         }
+        */
+        socket.emit("join_group", { group_id: groupId });
       } catch (err) {
         console.error(err);
         alert("エラーが発生しました");
@@ -1345,24 +1355,6 @@
     }
 
     let notification_is_allowed = false;
-    const fileInput = document.getElementById("fileInput");
-    const fileSelectBtn = document.getElementById("fileSelectBtn");
-    const fileNameDisplay = document.getElementById("fileNameDisplay");
-    fileInput.addEventListener("change", () => {
-      if (fileInput.files.length > 0) {
-        // ファイル名表示
-        fileNameDisplay.textContent = fileInput.files[0].name;
-
-        // ボタン無効化
-        fileSelectBtn.disabled = true;
-        document.getElementById("fileSendBtn").disabled = false;
-      } else {
-        // ファイル選択解除時はリセット
-        fileNameDisplay.textContent = "";
-        fileSelectBtn.disabled = false;
-        document.getElementById("fileSendBtn").disabled = true;
-      }
-    });
     let membersData = [];  // グローバル変数に保存しておく
     let currentSortKey = null;
     let currentSortOrder = 'asc';
@@ -1447,12 +1439,14 @@
     document.addEventListener("DOMContentLoaded", () => {
       // 最初にshowEmptyStateを呼び出す（window.onloadだと実行されない？のかな）
       showEmptyState();
-      loadGroups();
+      //loadGroups();
+      /*
       setInterval(() => {
         if (currentGroupId) {
           loadMessages(currentGroupId);
         }
       }, 1000);
+      */
 
       
       // ログアウトボタン
@@ -1814,7 +1808,7 @@
       if (shouldScroll) {
         chat.scrollTop = chat.scrollHeight;
       }
-      loadMembers(currentGroupId);
+      //loadMembers(currentGroupId);
     }
 
     function closeMessageMenu() {
@@ -1846,7 +1840,7 @@
           return;
         }
       const user = await res.json();
-
+      /*
       const res2 = await fetch("/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1865,11 +1859,13 @@
         if (replyingTo) {
           cancelReply();
         }
-        loadMembers(currentGroupId);
+        //loadMembers(currentGroupId);
       }else {
         alert("メッセージの送信に失敗しました。¥nエラーメッセージ：" + data.message);
         sendMessageToPython("メッセージ送信失敗");
       }
+      */
+      socket.emit("send_message", { name: user.name, text: text, group_id: currentGroupId, replyTo: replyingTo ? replyingTo.id : null});
       
     }
     async function uploadFile() {
@@ -1886,6 +1882,7 @@
       formData.append("group_id", currentGroupId);
       formData.append("replyTo", replyingTo ? replyingTo.id : null);
 
+      
       const res = await fetch("/upload", {
         method: "POST",
         body: formData
@@ -1896,10 +1893,14 @@
         fileInput.value = "";
         fileNameDisplay.textContent = "";
         fileSelectBtn.disabled = false;
+        if (replyingTo) {
+          cancelReply();
+        }
         await loadMessages(currentGroupId);  // チャット更新
       } else {
         alert("アップロード失敗");
       }
+      
     }
     document.getElementById("logout").onclick = async () => {
       sendMessageToPython("ログアウト")
@@ -1958,7 +1959,7 @@
     }
 
 
-      async function saveProfile() {
+    async function saveProfile() {
       alert("プロフィールを更新します。");
       sendMessageToPython("profile update");
       const formData = new FormData();
@@ -1997,8 +1998,10 @@
           body: formData
         });
         const result = await res.json();
-        if (result.success) {
+        if (!result.success) {
+          
           //window.location.href = "/chat";
+          /*
           alert("プロフィールの更新を完了するために、ログアウトします。");
           sendMessageToPython("ログアウト");
           const response = await fetch("/logout", { method: "POST" });
@@ -2012,10 +2015,10 @@
             alert("ログアウトに失敗しました。");
             sendMessageToPython("ログアウト失敗");
           }
-        }else {
           alert("プロフィールを更新できませんでした。");
           sendMessageToPython("プロフィール更新失敗");
-        }
+          */
+          alert("プロフィールを更新できませんでした。");
       } catch (err) {
         console.error("Error updating profile:", err);
         alert("プロフィールの更新中にエラーが発生しました。");
@@ -2045,6 +2048,7 @@
         //window.location.reload();
       }
     }
+    /*
     showEmptyState();
     loadGroups();
     setInterval(() => {
@@ -2052,9 +2056,53 @@
         loadMessages(currentGroupId);
       }
     }, 1000);
+    */
 
     //loadMessages();
     //loadMembers();
+    
+    socket.on("joined", (data) => {
+      showDialog(
+        `グループ「${groupName}」に参加しました！\nグループID: ${data.group_id} (このIDで他のユーザーに招待してください)`,
+        [
+          {text: "IDをコピー", action: () => copyString(data.group_id), close: false},
+          {text: "閉じる", action: () => {return;}, close: true}
+        ]
+      );
+      loadGroups();
+    });
+
+    socket.on("new_message", (data) => {
+      loadMessages(currentGroupId);
+    });
+
+    socket.on("profile_updated", (data) => {
+      loadMembers();
+      loadMessages(currentGroupId);
+      loadGroups(currentGroupId);
+    });
+
+    socket.on("group_profile_updated", (data) => {
+      loadGroups(currentGroupId);
+      loadMessages(currentGroupId);
+    });
+
+    socket.on("joined", (data) => {
+      loadMembers();
+      loadGroups(currentGroupId);
+    });
+
+    socket.on("error", (data) => {
+      alert(data.msg);
+    });
+
+    socket.on("disconnect", () => {
+      alert("サーバーとの接続が切れました。");
+    });
+
+    socket.on("connect_error", (err) => {
+      alert(`サーバーとの接続に失敗しました。\nエラー: ${err}`);
+    });
 
   </script>
   </body>  
