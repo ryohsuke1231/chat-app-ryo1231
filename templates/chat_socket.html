@@ -61,7 +61,7 @@
         background-color: #007bff;
         color: white;
         border: none;
-        border-radius: 4px;
+        border-radius: 6px;
         cursor: pointer;
       }
 
@@ -130,7 +130,7 @@
 
       #emptyState button {
         margin: 0 10px;
-        padding: 10px 18px;
+        padding: 12px 20px;
         font-size: 1em;
         border-radius: 6px;
         border: none;
@@ -149,36 +149,42 @@
         border-collapse: collapse;
         margin-top: 10px;
         font-size: 16px;
-        background-color: #ffffff;
-        border-radius: 12px;
+        background-color: #fff;
+        border-radius: 8px;
         overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1); /* より強めの影 */
+        transition: all 0.3s ease;
       }
 
       /* ヘッダー行 */
       #members-table thead {
-        background-color: #f5f5f5;
+        background-color: #4CAF50; /* おしゃれなグリーン */
+        color: #fff; /* 白文字 */
       }
 
       #members-table thead th {
-        padding: 12px;
+        padding: 16px;
         text-align: left;
         cursor: pointer;
         user-select: none;
         position: relative;
+        font-family: 'Roboto', sans-serif; /* モダンなフォント */
+        font-weight: 500;
+        letter-spacing: 1px;
+        text-transform: uppercase;
       }
 
       /* 並び替えの矢印表示 */
       #members-table thead th::after {
         content: "";
         position: absolute;
-        right: 10px;
+        right: 12px;
         top: 50%;
         margin-top: -6px;
         border: 6px solid transparent;
-        border-top-color: #999;
-        opacity: 0.5;
-        transition: transform 0.2s;
+        border-top-color: #fff; /* 矢印の色を白に */
+        opacity: 0.6;
+        transition: transform 0.3s, opacity 0.3s;
       }
 
       #members-table thead th.sorted-asc::after {
@@ -193,20 +199,34 @@
 
       /* 本体の行 */
       #members-table tbody tr {
-        border-top: 1px solid #e0e0e0;
+        border-top: 1px solid #f0f0f0;
+        transition: background-color 0.3s ease; /* 行をホバーしたときの色変化 */
       }
 
       #members-table tbody td {
-        padding: 10px 12px;
+        padding: 14px 20px;
         vertical-align: middle;
+        font-family: 'Arial', sans-serif;
+        font-size: 15px;
+      }
+
+      /* 行をホバーしたときの背景色 */
+      #members-table tbody tr:hover {
+        background-color: #f4f4f4;
       }
 
       /* アイコン画像 */
       #members-table img.icon {
         border-radius: 50%;
-        width: 32px;
-        height: 32px;
+        width: 40px; /* 少し大きめ */
+        height: 40px;
         object-fit: cover;
+        border: 2px solid #fff; /* アイコンの周りに白い枠線 */
+      }
+
+      /* ゼロから始めるシャドウや微細な効果 */
+      #members-table tbody td:hover {
+        background-color: #e0e0e0;
       }
 
       #container,
@@ -313,7 +333,7 @@
 
       #inputArea button,
       .file-btn {
-        padding: 10px 18px;
+        padding: 12px 20px;
         border: none;
         border-radius: 25px;
         font-size: 0.95em;
@@ -485,7 +505,7 @@
       }
 
       button {
-        padding: 8px 14px;
+        padding: 12px 20px;
         border: none;
         border-radius: 10px;
         background-color: #0984e3;
@@ -566,7 +586,7 @@
         border: none;
         border-radius: 6px;
         cursor: pointer;
-        font-size: 1em;
+        font-size: 1.2em;
         transition: background-color 0.2s;
       }
 
@@ -871,7 +891,7 @@
             accept="image/*"
             id="groupIconInput"
           /> </label
-        ><br />
+        ><br /><br />
         <button id="createGroupBtn2" type="button" onclick="create_group()">
           グループを作成
         </button>
@@ -953,62 +973,6 @@
 
       const socket = io({
         withCredentials: true  // Cookieを含めて送る
-      });
-
-      socket.on("new_message", (data) => {
-        if (data.group_id !== currentGroupId) {
-          alert("新しいメッセージがありますが、現在のグループではありません。");
-        }
-        loadMessages(currentGroupId);
-      });
-
-      socket.on("profile_updated", (data) => {
-        loadMembers();
-        loadMessages(currentGroupId);
-        loadGroups(currentGroupId);
-      });
-
-      socket.on("my_profile_updated", (data) => {
-        loadMembers();
-        loadMessages(currentGroupId);
-        loadGroups(currentGroupId);
-        selectGroup(currentGroupId, data.new_name);
-      });
-
-      socket.on("group_profile_updated", (data) => {
-        loadGroups(currentGroupId);
-        //selectGroup(currentGroupId, data.new_name)
-        if (data.group_id === currentGroupId) {
-          loadMessages(currentGroupId);
-        } else {
-          alert("グループのプロフィールが更新されましたが、現在のグループではありません。");
-        }
-      });
-
-      socket.on("joined", (data) => {
-        loadMembers();
-        loadGroups(currentGroupId);
-      });
-
-      socket.on("update_read_message", (data) => {
-        loadMessages(currentGroupId);
-        //今後、自分のグループでなければ通知数の表示なども検討
-      });
-
-      socket.on("error", (data) => {
-        alert(data.msg);
-      });
-
-      socket.on("disconnect", () => {
-        //alert("サーバーとの接続が切れました。");
-      });
-
-      socket.on("connect_error", (err) => {
-        //alert(`サーバーとの接続に失敗しました。\nエラー: ${err}`);
-      });
-
-      socket.on("connect", () => {
-        //alert("サーバーとの接続が確立されました。");
       });
 
       //alert("socketの定義を通過しましたヒャッホお");
@@ -1340,11 +1304,12 @@
 
         document.getElementById("welcomeMessage").textContent = `「${group_name}」グループでチャット中`;
         showChatUI();
+        loadMembers();
         loadMessages(group_id);  // ← Flaskからそのグループのメッセージを取得する関数
       }
 
       async function loadGroups() {
-        sendMessageToPython("¥n¥nloadGroups!!!!!!!!!");
+        sendMessageToPython("loadGroups!!!!!!!!!");
         const response = await fetch('/get_groups');
         const data = await response.json();
         renderGroupList(data.groups);
@@ -1493,9 +1458,20 @@
       let currentSortOrder = 'asc';
 
       let previousMembersData = [];
-      async function loadMembers(group_id) {
+
+      
+      async function loadMembers(group_id = null) {
+        sendMessageToPython("loadMembersが呼ばれました。");
         if (isGroupSelected === false) {
+          sendMessageToPython(`グループ未選択でloadMembersを試みました`);
           return;
+        }
+        if (group_id === null) {
+          if (currentGroupId !== null) {
+            group_id = currentGroupId;
+          } else {
+            sendMessageToPython(`グループIDがnullでloadMembersを試みました`);
+          }
         }
         const response = await fetch(`/api/members/${group_id}`);
         const members = await response.json();
@@ -1503,6 +1479,7 @@
         if (!isEqual(members, previousMembersData)) {
           membersData = members;
           previousMembersData = members;  // 更新
+          sendMessageToPython(`loadMembers: ${JSON.stringify(members)}`);
           renderMemberTable();
         }
       }
@@ -2034,7 +2011,7 @@
         }
         */
         socket.emit("send", { name: user.name, text: text, group_id: currentGroupId, replyTo: replyingTo ? replyingTo.id : null});
-
+        document.getElementById("text").value = "";
       }
       async function uploadFile() {
         if (isGroupSelected === false){
@@ -2214,6 +2191,62 @@
 
       //loadMessages();
       //loadMembers();
+      socket.on("new_message", (data) => {
+        if (data.group_id !== currentGroupId) {
+          alert("新しいメッセージがありますが、現在のグループではありません。");
+        }
+        loadMessages(currentGroupId);
+      });
+
+      socket.on("profile_updated", (data) => {
+        loadMembers();
+        loadMessages(currentGroupId);
+        loadGroups(currentGroupId);
+      });
+
+      socket.on("my_profile_updated", (data) => {
+        loadMembers();
+        loadMessages(currentGroupId);
+        loadGroups(currentGroupId);
+        selectGroup(currentGroupId, data.new_name);
+      });
+
+      socket.on("group_profile_updated", (data) => {
+        loadGroups(currentGroupId);
+        //selectGroup(currentGroupId, data.new_name)
+        if (data.group_id === currentGroupId) {
+          loadMessages(currentGroupId);
+        } else {
+          alert("グループのプロフィールが更新されましたが、現在のグループではありません。");
+        }
+      });
+
+      socket.on("joined", (data) => {
+        loadMembers();
+        loadGroups(currentGroupId);
+      });
+
+      socket.on("update_read_message", (data) => {
+        loadMessages(currentGroupId);
+        //今後、自分のグループでなければ通知数の表示なども検討
+      });
+
+      socket.on("error", (data) => {
+        alert(data.msg);
+      });
+
+      socket.on("disconnect", () => {
+        alert("サーバーとの接続が切れました。");
+      });
+
+      socket.on("connect_error", (err) => {
+        alert(`サーバーとの接続に失敗しました。\nエラー: ${err}`);
+      });
+
+      socket.on("connect", () => {
+        alert("サーバーとの接続が確立されました。");
+      });
+
 
     </script>
   </body>

@@ -50,7 +50,7 @@ def clean_files():
 
 atexit.register(on_shutdown)
 
-logging.getLogger('werkzeug').setLevel(logging.DEBUG)
+logging.getLogger('werkzeug').setLevel(logging.ERROR)
 
 app = Flask(__name__)
 
