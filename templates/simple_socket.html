@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Test</title>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>WebSocket Test</h1>
+    <div id="messages"></div>
+    <input type="text" id="message_input" placeholder="メッセージを入力">
+    <button onclick="sendMessage()">送信</button>
+
+    <script>
+        // WebSocket接続
+        const socket = io();
+
+        // サーバーからのメッセージを受け取ったら表示
+        socket.on('message', (data) => {
+            const messagesDiv = document.getElementById("messages");
+            messagesDiv.innerHTML += `<p>${data.msg}</p>`;
+        });
+
+        // サーバー接続時にメッセージを送信
+        socket.on('connect', function() {
+            socket.send("こんにちは、サーバー！");
+        });
+
+        socket.on('connected', (data) => {
+            const messagesDiv = document.getElementById("messages");
+            messagesDiv.innerHTML += `<h2>${data.msg}</h2>`;
+        });
+
+        // メッセージ送信関数
+        function sendMessage() {
+            const input = document.getElementById('message_input');
+            const message = input.value;
+            socket.send(message);
+            input.value = '';
+        }
+    </script>
+</body>
+</html>

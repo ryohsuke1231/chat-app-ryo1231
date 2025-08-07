@@ -67,7 +67,7 @@ else:
 is_test = True
 
 socketio = SocketIO(app, manage_session=False)  # manage_session=False は Flask sessionを直接使う時
-print("socketio initialized")
+print("socketio")
 
 # === 設定 ===
 UPLOAD_FOLDER = 'uploads'
@@ -116,6 +116,14 @@ def init_db():
                 PRIMARY KEY (user_id, group_id),
                 FOREIGN KEY (user_id) REFERENCES users(id),
                 FOREIGN KEY (group_id) REFERENCES groups(id)
+            )
+        ''')
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS read_status (
+                group_id TEXT,
+                user_id INTEGER,
+                last_read_message_id INTEGER,
+                PRIMARY KEY (group_id, user_id)
             )
         ''')
         """
@@ -229,7 +237,9 @@ def login():
         if row and check_password_hash(row[1], password):
             session['user'] = email
             session['uid'] = row[0]
-            return render_template("chat_socket.html", user=row[2], email=email)
+            session['name'] = row[2]
+            #return render_template("chat_socket.html", user=row[2], email=email)
+            return redirect(url_for('go_chat'))
 
         return render_template('login.html',
                                error="メールアドレスまたはパスワードが間違っています。",
@@ -239,6 +249,10 @@ def login():
         device_type = get_device_type()
         session['device_type'] = device_type
         return render_template('login.html', device_type=device_type)
+
+@app.route('/go_chat')
+def go_chat():
+    return render_template("chat_socket.html", user=session.get('name'), email=session.get('user'))
 
 
 def get_device_type():
@@ -549,7 +563,7 @@ def chat(group_id):
                 "type": type,
                 "text": text,
                 "time": time_,
-                "read": read,
+                "read": read - 1,
                 "email": email_,
                 "reply_to": reply_to,
                 "icon": icon_,
@@ -557,6 +571,26 @@ def chat(group_id):
             })
     #print(f"returning messages: {messages}")
     return jsonify({"messages": messages, "file_secret_key": file_secret_key})
+
+@socketio.on('read_message')
+def read_message(data):
+    if 'user' not in session:
+        return
+    group_id = data.get('group_id')
+    message_id = data.get('message_id')
+    user_id = session['uid']
+
+    with sqlite3.connect("chat.db") as conn:
+        conn.execute(
+            "UPDATE read_status SET last_read_message_id = ? WHERE group_id = ? AND user_id = ?",
+            (message_id, group_id, user_id)
+        )
+        conn.execute(
+            f"UPDATE messages_{group_id} SET read = read + 1 WHERE id = ?",
+            (message_id)
+        )
+        conn.commit()
+    emit('update_read_message', {'group_id': group_id, 'message_id': message_id}, to=group_id)
 
 
 # === アイコンアップロード（ログイン中） ===
@@ -738,6 +772,10 @@ def update_profile():
     cur3 = conn.execute(
         "SELECT group_id FROM user_groups WHERE user_id = ?", (user_id, ))
     group_ids = [r[0] for r in cur3.fetchall()]
+    socketio.emit('my_profile_updated', {
+        'user_id': user_id,
+        'new_name': new_name
+    })
     for group_id in group_ids:
         socketio.emit('profile_updated', {
             'group_id': group_id, 
