@@ -401,7 +401,7 @@ def create_group():
                 type TEXT,
                 text TEXT,
                 time TEXT,
-                read INTEGER,
+                read INTEGER DEFAULT 0,
                 email TEXT,
                 user_id INTEGER,
                 reply_to INTEGER DEFAULT -1
