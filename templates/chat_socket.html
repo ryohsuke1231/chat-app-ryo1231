@@ -990,20 +990,25 @@
         loadGroups(currentGroupId);
       });
 
+      socket.on("update_read_message", (data) => {
+        loadMessages(currentGroupId);
+        //今後、自分のグループでなければ通知数の表示なども検討
+      });
+
       socket.on("error", (data) => {
         alert(data.msg);
       });
 
       socket.on("disconnect", () => {
-        alert("サーバーとの接続が切れました。");
+        //alert("サーバーとの接続が切れました。");
       });
 
       socket.on("connect_error", (err) => {
-        alert(`サーバーとの接続に失敗しました。\nエラー: ${err}`);
+        //alert(`サーバーとの接続に失敗しました。\nエラー: ${err}`);
       });
 
       socket.on("connect", () => {
-        alert("サーバーとの接続が確立されました。");
+        //alert("サーバーとの接続が確立されました。");
       });
 
       //alert("socketの定義を通過しましたヒャッホお");
@@ -1762,8 +1767,21 @@
           name: userName,
           iconUrl: user.iconUrl
         };
+        /*
+        const getLatestReadMessageId = async () => {
+          const res = await fetch(`/get_latest_read/${str_groupId}`);
+          const data = await res.json();
+          return data.last_read_message_id;
+        };
+
+        const latestReadMessageId = await getLatestReadMessageId();  
+        */
         const res = await fetch(`/chat/${str_groupId}`);
         const data = await res.json();
+        if (data.status === "error") {
+          alert("メッセージの取得に失敗しました。\nエラーメッセージ：" + data.message);
+          sendMessageToPython("メッセージ取得失敗");
+        }
         if (currentGroupId !== groupId) {
           return;
         }
@@ -1815,6 +1833,7 @@
                 <img src=${iconUrl} class="icon" height="24" onclick="showUserInfo(${msg.user_id})"/>
                 <strong>${msg.name}</strong>
               `;
+          const otherInfo = isMine ? `${msg.time} 　既読${msg.read}` : `既読${msg.read} 　${msg.time}`
 
           bubble.innerHTML = `
             <div class="msg-content" msg_id=${msg.id}>
@@ -1828,7 +1847,7 @@
                     ? `<a href="/files/${msg.text}" target="_blank">${msg.text}</a>`
                     : msg.text}
                 </div>
-                <div class="meta">${msg.time}</div>
+                <div class="meta">${otherInfo}</div>
               </div>
             </div>
           `;
@@ -1938,8 +1957,10 @@
 
           if (msg.id > latestMessageId) {
             latestMessageId = msg.id;
+            //socket.emit("read_message", { group_id: currentGroupId, message_id: msg.id });
           }
           chat.appendChild(bubble);
+          /*
           if(notification_is_allowed === true){
             if(msg.email !== userEmail){
               new Notification("Chat App", {
@@ -1948,6 +1969,7 @@
               });
             }
           }
+          */
         });
 
       

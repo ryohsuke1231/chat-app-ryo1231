@@ -440,6 +440,14 @@ def join_group(data):
             #return jsonify({"status": "error", "message": "グループが存在しません"}), 400
             emit('error', {'msg': '当てはまるgroupがありません'})
             return
+
+        # 例: 存在しなければINSERT、それ以外はUPDATE
+        conn.execute("""
+            INSERT INTO read_status (group_id, user_id, last_read_message_id)
+            VALUES (?, ?, 0)
+            ON CONFLICT(group_id, user_id) DO UPDATE SET last_read_message_id = 0
+        """, (group_id, user_id))
+
     group_name = row[0]
     join_room(group_id)
     """
@@ -542,12 +550,30 @@ def chat(group_id):
             return jsonify({'status': 'error', 'message': 'グループに参加していません'})
         # メッセージ取得（名前だけでなく送信者のアイコンも含める場合はクエリ変更が必要）
         messages_table = f"messages_{group_id}"
+        cur9 = conn.execute(f"SELECT MAX(id) FROM {messages_table}")
+        row = cur9.fetchone()  # 結果はタプルで返るので [0] をつける
+        max_id = row[0] if row[0] is not None else 0
+
+        latest_read_message_id = get_latest_read(group_id)
+        if latest_read_message_id is False:
+            return jsonify({'status': 'error', 'message': '読み込みに失敗しました'})
+        if max_id > latest_read_message_id:
+            conn.execute(
+                "UPDATE read_status SET last_read_message_id = ? WHERE group_id = ? AND user_id = ?",
+                (max_id, group_id, user_id)
+            )
+            conn.execute(
+                f"UPDATE {messages_table} SET read = read + 1 WHERE id > ?",
+                (latest_read_message_id,)
+            )
+            
+
         cur = conn.execute(
             f"SELECT id, name, type, text, time, read, email, reply_to FROM {messages_table}"
         )
+        raw_messages = cur.fetchall()
         messages = []
-        for id, name, type, text, time_, read, email_, reply_to in cur.fetchall(
-        ):
+        for id, name, type, text, time_, read, email_, reply_to in raw_messages:
             # 送信者のアイコン取得
             cur_icon = conn.execute(
                 "SELECT icon_filename, icon_is_default, id FROM users WHERE email=?",
@@ -570,7 +596,7 @@ def chat(group_id):
                 "icon_is_default": user_icon_is_default_
             })
     #print(f"returning messages: {messages}")
-    return jsonify({"messages": messages, "file_secret_key": file_secret_key})
+    return jsonify({"status": "ok", "messages": messages, "file_secret_key": file_secret_key})
 
 @socketio.on('read_message')
 def read_message(data):
@@ -587,10 +613,29 @@ def read_message(data):
         )
         conn.execute(
             f"UPDATE messages_{group_id} SET read = read + 1 WHERE id = ?",
-            (message_id)
+            (message_id,)
         )
         conn.commit()
     emit('update_read_message', {'group_id': group_id, 'message_id': message_id}, to=group_id)
+
+#@app.route('/get_latest_read/<group_id>')
+def get_latest_read(group_id):
+    if 'user' not in session:
+        #return "Unauthorized", 403
+        return False
+    user_id = session['uid']
+    with sqlite3.connect("chat.db") as conn:
+        cur = conn.execute(
+            "SELECT last_read_message_id FROM read_status WHERE group_id = ? AND user_id = ?",
+            (group_id, user_id)
+        )
+        row = cur.fetchone()
+        if row is None:
+            #return jsonify({"status": "error", "message": "読み込みに失敗しました"}), 400
+            return False
+        last_read_message_id = row[0]
+    return last_read_message_id
+    #return jsonify({"status": "ok", "last_read_message_id": last_read_message_id})
 
 
 # === アイコンアップロード（ログイン中） ===
