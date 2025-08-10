@@ -50,7 +50,7 @@ def clean_files():
 
 atexit.register(on_shutdown)
 
-logging.getLogger('werkzeug').setLevel(logging.ERROR)
+logging.getLogger('werkzeug').setLevel(logging.DEBUG)
 
 app = Flask(__name__)
 
@@ -464,6 +464,35 @@ def join_group(data):
         'group_name': group_name
     }, to=group_id)
 
+@socketio.on('leave_group')
+def leave_group(data):
+    user_id = session['uid']
+    group_id = data.get('group_id')
+    with sqlite3.connect("chat.db") as conn:
+        # user_groupsから退出するユーザーの情報を削除
+        conn.execute('''
+            DELETE FROM user_groups
+            WHERE user_id = ? AND group_id = ?
+        ''', (user_id, group_id))
+
+        # グループが空になった場合（参加者がいなくなった場合）にグループも削除
+        cursor = conn.execute('''
+            SELECT COUNT(*) FROM user_groups WHERE group_id = ?
+        ''', (group_id,))
+
+        if cursor.fetchone()[0] == 0:
+            conn.execute('''
+                DELETE FROM groups WHERE id = ?
+            ''', (group_id,))
+            conn.execute(
+                f"DROP TABLE IF EXISTS messages_{group_id}"
+            )
+
+        print("Successfully left the group")
+        leave_room(group_id)
+        emit('left_ok', {'msg': 'グループから退出しました'})
+        emit('left', {'msg': 'グループから退出しました'}, to=group_id)
+
 
 @app.route('/update_group_profile', methods=['POST'])
 def update_group_profile():
@@ -566,22 +595,36 @@ def chat(group_id):
                 f"UPDATE {messages_table} SET read = read + 1 WHERE id > ?",
                 (latest_read_message_id,)
             )
-            
 
+        cur_participants = conn.execute('''
+            SELECT u.email
+            FROM users u
+            JOIN user_groups ug ON u.id = ug.user_id
+            WHERE ug.group_id = ?
+        ''', (group_id,))
+
+        # 参加しているユーザーのemail一覧を取得
+        participants_emails = [email for email, in cur_participants.fetchall()]
+        
         cur = conn.execute(
             f"SELECT id, name, type, text, time, read, email, reply_to FROM {messages_table}"
         )
         raw_messages = cur.fetchall()
         messages = []
+        emails = [msg[6] for msg in raw_messages]  # メッセージに含まれるemailを抽出
+        cur_users = conn.execute('''
+            SELECT email, icon_filename, icon_is_default, id 
+            FROM users WHERE email IN ({})
+        '''.format(','.join('?' for _ in emails)), emails)
+
+        # ユーザー情報を辞書にまとめる
+        users_info = {email: (icon_filename, icon_is_default, user_id) for email, icon_filename, icon_is_default, user_id in cur_users.fetchall()}
         for id, name, type, text, time_, read, email_, reply_to in raw_messages:
-            # 送信者のアイコン取得
-            cur_icon = conn.execute(
-                "SELECT icon_filename, icon_is_default, id FROM users WHERE email=?",
-                (email_, ))
-            icon_row = cur_icon.fetchone()
-            icon_ = icon_row[0] if icon_row and icon_row[0] else None
-            user_icon_is_default_ = icon_row[1] if icon_row else 1
-            user_id = icon_row[2] if icon_row else None
+            icon_filename, icon_is_default, user_id = users_info.get(email_, (None, 1, None))
+
+            # グループに参加していない場合は名前に "(退出済み)" を付け加える
+            if email_ not in participants_emails:
+                name += " (退出済み)"
             messages.append({
                 "id": id,
                 "name": name,
@@ -592,8 +635,8 @@ def chat(group_id):
                 "read": read - 1,
                 "email": email_,
                 "reply_to": reply_to,
-                "icon": icon_,
-                "icon_is_default": user_icon_is_default_
+                "icon": icon_filename,
+                "icon_is_default": icon_is_default
             })
     #print(f"returning messages: {messages}")
     return jsonify({"status": "ok", "messages": messages, "file_secret_key": file_secret_key})

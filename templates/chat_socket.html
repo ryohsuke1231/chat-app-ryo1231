@@ -6,6 +6,7 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
       rel="stylesheet"
     />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>チャットルーム</title>
     <style>
@@ -701,6 +702,7 @@
     <header>
       <h2 id="welcomeMessage">ようこそ {{ user }} さん！</h2>
       <p>フィードバックはz704626b@fcs.ed.jpまで</p>
+      
       <button id="settingsBtn">⚙️</button>
     </header>
 
@@ -713,7 +715,7 @@
         </ul>
         <p id="noneGroups" style="display: none">
           まだグループに参加していません
-        </p>
+        </p>  
         <div id="groupActions">
           <button onclick="showCreateGroupModal()">＋ 新規作成</button>
           <button onclick="join_group()">グループに参加</button>
@@ -769,8 +771,10 @@
           <button onclick="cancelReply()" style="float: right">✕</button>
         </div>
         <div id="inputArea">
+          <button id="addOptionsBtn" onclick="showAddOptions()">追加　<i class="fa-solid fa-plus"></i></button>
           <input id="text" placeholder="メッセージを入力..." />
-          <button id="sendBtn" onclick="send()">送信</button>
+          <button id="sendBtn" onclick="send()">送信　<i class="fa-solid fa-paper-plane"></i></button>
+           <!--
           <button
             type="button"
             class="file-btn"
@@ -788,6 +792,23 @@
           <button id="fileSendBtn" onclick="uploadFile()" disabled>
             ファイル送信
           </button>
+          -->
+        </div>
+        <div id="addOptions" style="display: none">
+          <div id="Options">
+            <button id="addImageBtn" onclick="document.getElementById('imageInput').click();">
+              <i class="fa-solid fa-image" id="addImage"></i>
+              <br>画像
+            </button>
+            <input type="file" id="imageInput" style="display: none" accept="image/*" />
+            
+            <button id="addFileBtn" onclick="document.getElementById('fileInput').click();">
+              <i class="fa-solid fa-file" id="addFile"></i>
+              <br>ファイル
+            </button>
+            <input type="file" id="fileInput" style="display: none" />
+            
+          </div>
         </div>
       </div>
     </div>
@@ -836,8 +857,10 @@
           >ステータスメッセージ:<br />
           <input type="text" id="statusMessageInput" />
         </label>
-        <br /><br />
+        <i class="fas fa-ellipsis-v"></i>
 
+        <br /><br />
+  
         <button id="permission_notification" type="button">通知設定</button>
         <button id="logout" type="button">ログアウト</button>
         <button id="saveSettings" type="button">保存</button>
@@ -937,6 +960,7 @@
     <script
       src="https://cdn.socket.io/4.8.1/socket.io.min.js"
     ></script>
+    
     <script defer>
       //alert("JavaScriptを読み込みました");
       window.addEventListener("error", function (event) {
@@ -1129,8 +1153,24 @@
                 renderGroupList(groups);
               };
 
+              const leave = document.createElement('div');
+              leave.textContent = 'グループから退出';
+              leave.style.padding = '6px 12px';
+              leave.style.cursor = 'pointer';
+              leave.onmouseenter = () => { leave.style.backgroundColor = '#eee'; }
+              leave.onmouseleave = () => { leave.style.backgroundColor = 'white'; }
+              leave.style.color = 'red';
+              leave.onclick = async (event) => {
+                event.stopPropagation();
+                closeCurrentMenu();
+                socket.emit("leave_group", { group_id: group.id });
+                //alert('グループから退出しました');
+                
+              };
+
               menu.appendChild(idShow);
               menu.appendChild(rename);
+              menu.appendChild(leave);
 
               // 3本線ボタンの位置を基準にメニュー配置
               const rect = menuBtn.getBoundingClientRect();
@@ -1627,7 +1667,22 @@
             behavior: 'smooth'
           });
         });
-        
+
+        const sendBtn = document.getElementById("sendBtn");
+
+        /*
+        // イベントリスナーの設定
+        sendBtn.addEventListener('mousedown', startDrag); // マウス用
+        sendBtn.addEventListener('touchstart', startDrag); // タッチ用
+
+        document.addEventListener('mousemove', moveDrag); // マウス用
+        document.addEventListener('touchmove', moveDrag); // タッチ用
+
+        document.addEventListener('mouseup', endDrag); // マウス用
+        document.addEventListener('touchend', endDrag); // タッチ用
+        document.addEventListener('touchcancel', endDrag); // タッチキャンセル用
+        */
+
 
         // 初回データ読み込み
         loadGroups();
@@ -1636,6 +1691,77 @@
           loadMembers(currentGroupId);
         }
       });
+      let isDragging = false;
+      let offsetX, offsetY;
+      let timer;  // クリック保持時間を測るタイマー
+      let isLongPress = false;  // 長押し状態を管理
+      let initialPosition = { x: 0, y: 0 };  // 初期位置を格納
+      let isDraggingNow = false;
+
+      // クリック操作のためのフラグ
+      let clickTimeout; // クリックのタイムアウト
+
+      // クリックイベントを無視する処理
+      function handleClick(e) {
+        if (isDraggingNow) {
+          e.preventDefault();  // ドラッグ中はクリックを無効にする
+        } else {
+          // クリックイベントの通常処理
+          alert("クリックイベントが発火しました!");
+        }
+      }
+
+      // マウスまたはタッチの開始時
+      function startDrag(e) {
+        isLongPress = false; // クリック状態をリセット
+        const startEvent = e.type === 'mousedown' ? e : e.touches[0];  // タッチイベント対応
+        // 初期位置を記録
+        initialPosition = {
+          x: sendBtn.getBoundingClientRect().left,
+          y: sendBtn.getBoundingClientRect().top
+        };
+        timer = setTimeout(() => {
+          // 1秒間クリックを保持したらドラッグ可能に
+          isLongPress = true;
+          //alert("長押しされたのでドラッグを開始します");
+        }, 1000);  // 1000ミリ秒（1秒）でドラッグ可能に
+
+        // クリック位置のオフセット計算
+        offsetX = startEvent.clientX - sendBtn.getBoundingClientRect().left;
+        offsetY = startEvent.clientY - sendBtn.getBoundingClientRect().top;
+
+        e.preventDefault();  // クリックイベントの伝播を防ぐ
+        isDraggingNow = true;
+      }
+
+      // マウスまたはタッチ移動時
+      function moveDrag(e) {
+        if (isLongPress && !isDragging) {
+          isDragging = true;  // ドラッグ開始
+        }
+
+        if (isDragging) {
+          const moveEvent = e.type === 'mousemove' ? e : e.touches[0];  // タッチイベント対応
+          sendBtn.style.left = `${moveEvent.clientX - offsetX}px`;
+          sendBtn.style.top = `${moveEvent.clientY - offsetY}px`;
+        }
+      }
+
+      // マウスまたはタッチ終了時
+      function endDrag(e) {
+        clearTimeout(timer);  // 長押しタイマーをクリア
+        if (isDragging) {
+          isDragging = false;
+        }
+        isLongPress = false;
+
+        // 元の位置に戻す
+        sendBtn.style.left = `${initialPosition.x}px`;
+        sendBtn.style.top = `${initialPosition.y}px`;
+
+        isDraggingNow = false;
+      }
+
 
       // データ比較（簡易版：JSON文字列で比較）
       function isEqual(a, b) {
@@ -2194,8 +2320,10 @@
       socket.on("new_message", (data) => {
         if (data.group_id !== currentGroupId) {
           alert("新しいメッセージがありますが、現在のグループではありません。");
+          return;
         }
         loadMessages(currentGroupId);
+        loadMembers();
       });
 
       socket.on("profile_updated", (data) => {
@@ -2229,6 +2357,20 @@
       socket.on("update_read_message", (data) => {
         loadMessages(currentGroupId);
         //今後、自分のグループでなければ通知数の表示なども検討
+      });
+
+      socket.on("left", (data) => {
+        loadMembers();
+        loadGroups();
+      });
+
+      socket.on("left_ok", (data) => {
+        //alert("グループから退出しました");
+        showDialog("グループから退出しました", [
+          {text: "OK", action: () => {return;}, close: true}
+        ]);
+        loadGroups();
+        showNotChosenGroup();
       });
 
       socket.on("error", (data) => {

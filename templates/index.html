@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ドラッグ開始のタイミング</title>
+  <style>
+    #dragMe {
+      width: 150px;
+      height: 150px;
+      background-color: lightblue;
+      position: absolute;
+      cursor: pointer;
+      border: 2px solid blue;
+    }
+  </style>
+</head>
+<body>
+
+<div id="dragMe">ドラッグしてね！</div>
+
+<script>
+  const dragElement = document.getElementById("dragMe");
+  let isDragging = false;
+  let offsetX, offsetY;
+  let timer;  // クリック保持時間を測るタイマー
+  let isLongPress = false;  // 長押し状態を管理
+
+  // ドラッグ開始
+  dragElement.addEventListener('mousedown', (e) => {
+    isLongPress = false; // クリック状態をリセット
+    timer = setTimeout(() => {
+      // 1秒間クリックを保持したらドラッグ可能に
+      isLongPress = true;
+      alert("長押しされたのでドラッグを開始します");
+    }, 1000);  // 1000ミリ秒（1秒）でドラッグ可能に
+
+    // クリック位置のオフセット計算
+    offsetX = e.clientX - dragElement.getBoundingClientRect().left;
+    offsetY = e.clientY - dragElement.getBoundingClientRect().top;
+
+    // クリック移動中の挙動
+    e.preventDefault();  // クリックイベントの伝播を防ぐ
+  });
+
+  // ドラッグ中
+  document.addEventListener('mousemove', (e) => {
+    if (isLongPress && !isDragging) {
+      isDragging = true;  // ドラッグ開始
+    }
+
+    if (isDragging) {
+      dragElement.style.left = `${e.clientX - offsetX}px`;
+      dragElement.style.top = `${e.clientY - offsetY}px`;
+    }
+  });
+
+  // ドラッグ終了
+  document.addEventListener('mouseup', () => {
+    clearTimeout(timer);  // 長押しタイマーをクリア
+    if (isDragging) {
+      isDragging = false;
+    }
+    isLongPress = false;
+  });
+</script>
+
+</body>
+</html>
