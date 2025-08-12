@@ -240,20 +240,36 @@ def login():
             session['name'] = row[2]
             #return render_template("chat_socket.html", user=row[2], email=email)
             return redirect(url_for('go_chat'))
+            #return redirect(url_for('map'))
 
         return render_template('login.html',
                                error="メールアドレスまたはパスワードが間違っています。",
                                device_type="pc")
 
     else:
+        #session.clear()
+        session.pop('user', None)
+        session.pop('uid', None)
+        session.pop('name', None)
+        #session.pop('app_authenticated', None)
         device_type = get_device_type()
         session['device_type'] = device_type
         return render_template('login.html', device_type=device_type)
 
 @app.route('/go_chat')
 def go_chat():
+    if 'user' not in session or session.get('user') is None:
+        return redirect(url_for('login'))
+        
+    # アプリパスワード認証チェック
+    if not check_app_auth():
+        return redirect(url_for('app_auth'))
+        
     return render_template("chat_socket.html", user=session.get('name'), email=session.get('user'))
 
+@app.route('/map')
+def map():
+    return render_template("map.html")
 
 def get_device_type():
     user_agent_str = request.headers.get('User-Agent')
@@ -625,13 +641,16 @@ def chat(group_id):
             # グループに参加していない場合は名前に "(退出済み)" を付け加える
             if email_ not in participants_emails:
                 name += " (退出済み)"
+            date = datetime.strptime(time_, '%Y-%m-%d %H:%M:%S').strftime('%Y/%m/%d')
+            time = datetime.strptime(time_, '%Y-%m-%d %H:%M:%S').strftime('%H:%M')
             messages.append({
                 "id": id,
                 "name": name,
                 "user_id": user_id,
                 "type": type,
                 "text": text,
-                "time": time_,
+                "time": time,
+                "date": date,
                 "read": read - 1,
                 "email": email_,
                 "reply_to": reply_to,
@@ -715,6 +734,7 @@ def upload():
         return "No file", 400
     group_id = request.form.get('group_id')
     replyToId = request.form.get('replyTo')
+    file_type = request.form.get('fileType')
     table_name = f"messages_{group_id}"
 
     filename = file.filename
@@ -732,7 +752,7 @@ def upload():
         name = row[0] if row else "Unknown"
         conn.execute(
             f"INSERT INTO {table_name} (name, type, text, time, read, email, user_id, reply_to) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (name, "file", filename, now, 0, email, user_id,
+            (name, file_type, filename, now, 0, email, user_id,
              replyToId if replyToId else -1))
         conn.execute(
             '''
@@ -966,7 +986,7 @@ def logout():
 
 @app.route("/login")
 def login_redirect():
-    return redirect("/")
+    return redirect(url_for("login"))
 
 
 @app.route("/api/user-info")
@@ -1138,6 +1158,19 @@ def clean_broken_groups(db_path="chat.db"):
         "deleted_groups": deleted_groups,
         "deleted_orphan_tables": deleted_orphan_tables
     })
+
+@app.route('/onClose', methods=["POST"])
+def onClose():
+    print("onClose")
+    session.pop("user", None)
+    session.pop("uid", None)
+    session.pop("name", None)
+    
+    #session.pop("app_authenticated", None)
+    #session.clear()
+    resp = jsonify({"status": "ok"})
+    #resp.set_cookie("session", "", expires=0)  # 👈 Cookieを強制削除
+    return resp
 
 
 if __name__ == "__main__":

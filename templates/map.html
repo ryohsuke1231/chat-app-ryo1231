@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>位置情報選択</title>
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    #map { height: 500px; width: 100%; }
+  </style>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    let map, marker;
+
+    function initMap() {
+      // 地図の初期位置（東京）
+      const initialLocation = [35.6895, 139.6917];
+
+      // 地図を作成
+      map = L.map('map').setView(initialLocation, 13);
+
+      // OpenStreetMapタイルを地図に追加
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+
+      // 現在位置を取得してマーカーを表示
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+          const currentLocation = [
+            position.coords.latitude,
+            position.coords.longitude
+          ];
+
+          map.setView(currentLocation, 13);  // 現在地に地図を移動
+
+          marker = L.marker(currentLocation, {
+            draggable: true  // ピンをドラッグ可能にする
+          }).addTo(map);
+
+          // マーカーにポップアップを追加
+          marker.bindPopup("<b>あなたの位置です</b>").openPopup();
+        }, function() {
+          alert("位置情報の取得に失敗しました");
+        });
+      } else {
+        alert("このブラウザでは位置情報が取得できません。");
+      }
+    }
+  </script>
+</head>
+<body onload="initMap()">
+  <div id="map"></div>
+</body>
+</html>
