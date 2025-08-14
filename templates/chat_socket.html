@@ -760,6 +760,90 @@
           transform: rotate(360deg);
         }
       }
+
+      #searchMessages {
+        /*position: absolute;*/  /* 親の流れに沿わせたいなら不要 */
+        top: 60px;
+        right: 10px;
+        background: white;
+        border: 1px solid #ccc;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        border-radius: 4px;
+        padding: 10px;
+        z-index: 1000;
+          
+        display: flex;            /* Flexbox */
+        flex-direction: row;      /* ← 横並び */
+        justify-content: flex-start; /* 左揃え。中央なら center、均等なら space-between */
+        align-items: center;      /* 高さを揃える */
+        gap: 10px;                /* 子要素間のスペース */
+      }
+
+
+      .search-result-content {
+        display: flex;
+        align-items: center;       /* 縦位置を中央揃え */
+        justify-content: space-between; /* 左右に要素を分ける */
+        padding: 8px 12px;
+        border-bottom: 1px solid #eee;
+        border-radius: 6px;
+        transition: background 0.2s;
+        cursor: pointer;           /* ホバー感を出す */
+      }
+
+      .search-result-content:last-child {
+        border-bottom: none;
+      }
+
+      /* ホバー時に背景色を淡く変える */
+      .search-result-content:hover {
+        background: #f5f5f5;
+      }
+
+      /* 左側のテキスト・アイコン */
+      .search-result-left {
+        display: flex;
+        align-items: center;
+        gap: 8px; /* アイコンとテキストの間隔 */
+      }
+
+      /* テキスト */
+      .search-result-text {
+        font-size: 14px;
+        color: #333;
+        white-space: nowrap;      /* 長いテキストは折り返さず省略 */
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* 右側の補足情報（日時やボタンなど） */
+      .search-result-right {
+        font-size: 12px;
+        color: #888;
+      }
+
+
+      #actionArea {
+        display: flex;           /* Flexboxを有効にする */
+        flex-direction: column;  /* 子要素を縦に並べる */
+        gap: 10px;               /* 子要素間の間隔 */
+      }
+
+      #inputArea,
+      #searchMessages,
+      #searchResults {
+        width: 100%;             /* 親の幅いっぱいに広げる */
+      }
+
+      #searchBtn1 {
+        cursor: pointer;
+        font-size: 20px;
+        color: #333;
+        user-select: none;
+      }
+      #searchBtn1:hover {
+        color: #555;
+      }
     </style>
   </head>
   <body>
@@ -767,7 +851,7 @@
       <h2 id="welcomeMessage">ようこそ {{ user }} さん！</h2>
       <p>フィードバックはz704626b@fcs.ed.jpまで</p>
 
-      <button id="settingsBtn">⚙️</button>
+      <i class="fa-solid fa-gear" id="settingsBtn"></i>
     </header>
 
     <!-- チャット本体 -->
@@ -837,36 +921,52 @@
           <span id="reply-info"></span>
           <button onclick="cancelReply()" style="float: right">✕</button>
         </div>
-        <div id="inputArea">
-          <button id="addOptionsBtn" onclick="showAddOptions()">
-            追加　<i class="fa-solid fa-plus"></i>
-          </button>
-          <input id="text" placeholder="メッセージを入力..." />
-          <label id="imageFileNameDisplay" style="display: none"></label>
-          <label id="fileFileNameDisplay" style="display: none"></label>
-          <button id="sendBtn" onclick="send()">
-            送信　<i class="fa-solid fa-paper-plane"></i>
-          </button>
-          <!--
-          <button
-            type="button"
-            class="file-btn"
-            id="fileSelectBtn"
-            onclick="document.getElementById('fileInput').click();"
-          >
-            ファイルを追加
-          </button>
-          <label for="username" style="display: none">ユーザー名:</label>
-          <input type="file" id="fileInput" style="display: none" />
-          <span
-            id="fileNameDisplay"
-            style="margin-left: 10px; font-weight: bold"
-          ></span>
-          <button id="fileSendBtn" onclick="uploadFile()" disabled>
-            ファイル送信
-          </button>
-          -->
+        <div id="actionArea">
+          <div id="inputArea">
+            <button id="addOptionsBtn" onclick="showAddOptions()">
+              追加　<i class="fa-solid fa-plus"></i>
+            </button>
+            <input id="text" placeholder="メッセージを入力..." />
+            <label id="imageFileNameDisplay" style="display: none"></label>
+            <label id="fileFileNameDisplay" style="display: none"></label>
+            <button id="sendBtn" onclick="send()">
+              送信　<i class="fa-solid fa-paper-plane"></i>
+            </button>
+            <i class="fa-solid fa-magnifying-glass" onclick="showSearchMessages()" style="font-size: 20px;" id="searchBtn1"></i>
+            <!--
+            <button
+              type="button"
+              class="file-btn"
+              id="fileSelectBtn"
+              onclick="document.getElementById('fileInput').click();"
+            >
+              ファイルを追加
+            </button>
+            <label for="username" style="display: none">ユーザー名:</label>
+            <input type="file" id="fileInput" style="display: none" />
+            <span
+              id="fileNameDisplay"
+              style="margin-left: 10px; font-weight: bold"
+            ></span>
+            <button id="fileSendBtn" onclick="uploadFile()" disabled>
+              ファイル送信
+            </button>
+            -->
+          
+          </div>
+  
+          <div id="searchMessages" style="display: none">
+            <input type="text" id="searchInput" placeholder="メッセージを検索..." />
+            <button id="searchBtn" onclick="searchMessages()"><i class="fa-solid fa-magnifying-glass"></i> 検索</button>
+            <button id="closeSearchBtn" onclick="hideSearchMessages()"><i class="fa-solid fa-xmark"></i> 閉じる</button>
+          </div>
+  
+          <div id="searchResults" style="display: none">
+            <h3>検索結果</h3>
+            <div id="searchResultsContainer"></div>
+          </div>
         </div>
+
         <div id="addOptions" style="display: none">
           <div id="Options">
             <button
@@ -1156,6 +1256,7 @@
         document.getElementById("noneGroups").style.display = "block";
         document.getElementById("groupList").style.display = "none";
         setWelcomeMessage();
+        unSelectGroup();
         //document.getElementById("scrollToBottomBtn").style.display = "none";
       }
 
@@ -1168,6 +1269,70 @@
         document.getElementById("noneGroups").style.display = "none";
         document.getElementById("groupList").style.display = "block";
         setWelcomeMessage();
+        document.getElementById("addOptions").style.display = "none";
+        unSelectGroup();
+      }
+
+      function showSearchMessages() {
+        document.getElementById("searchMessages").style.display = "flex";
+        document.getElementById("searchInput").focus();
+      }
+
+      function hideSearchMessages() {
+        document.getElementById("searchMessages").style.display = "none";
+        document.getElementById("searchResults").style.display = "none";
+      }
+
+      function searchMessages() {
+        const query = document.getElementById("searchInput").value;
+        if (!query) return;
+
+        // 検索処理を実行
+        console.log("Searching messages for:", query);
+
+        // 検索処理を実行
+        const messages = document.querySelectorAll(".msg");
+        let results = [];
+        messages.forEach((msg) => {
+          const textContent = msg.dataset.text;
+          if (textContent.includes(query)) {
+            results.push(msg);
+          }
+        });
+        if (results.length > 0) {
+          displaySearchResults(results);
+          document.getElementById("searchResults").style.display = "block";
+        } else {
+          document.getElementById("searchResultsContainer").innerHTML =
+            "<p>該当するメッセージはありません。</p>";
+          document.getElementById("searchResults").style.display = "block";
+        }
+      }
+
+      function displaySearchResults(results) {
+        const container = document.getElementById("searchResultsContainer");
+        container.innerHTML = ""; // 既存の結果をクリア
+        results.forEach((msg) => {
+          const msg_time = msg.dataset.time;
+          const msg_date = msg.dataset.date;
+          const date_time = `${msg_date} ${msg_time}`;
+          const msg_text = msg.dataset.text;
+          const msg_name = msg.dataset.name;
+          const resultItem = document.createElement("div");
+          resultItem.classList.add("search-result");
+          resultItem.innerHTML = `
+          <div class="search-result-content" onclick="jumpToMessage(${msg.dataset.id})">
+            <div class="search-result-left">
+              <span class="search-result-name">${msg_name}: </span>
+              <span class="search-result-text">${msg_text}</span>
+            </div>
+            <div class="search-result-right">${date_time}</div>
+          </div>
+          `;
+
+          
+          container.appendChild(resultItem);
+        });
       }
 
       async function userInfo() {
@@ -1191,6 +1356,7 @@
         document.getElementById("members-section").style.display = "block";
         document.getElementById("noneGroups").style.display = "none";
         document.getElementById("groupList").style.display = "block";
+        document.getElementById("addOptions").style.display = "none";
         //document.getElementById("scrollToBottomBtn").style.display = "block";
       }
 
@@ -1438,13 +1604,21 @@
             });
             const data = await res.json();
             if (data.status === "ok") {
-              alert("グループ情報を更新しました");
+              //alert("グループ情報を更新しました");
             } else {
-              alert("グループ情報の更新に失敗しました");
+              //alert("グループ情報の更新に失敗しました");
+              console.error("グループ情報の更新に失敗しました");
+              showErrorModal("グループ情報の更新に失敗しました");
+              return;
             }
+
             currentEditingGroupId = null;
             hideGroupSettingsModal();
-            afterUpdateGroup(group.id);
+            //afterUpdateGroup(group.id);
+            showNotChosenGroup();
+            //setWelcomeMessage();
+            unSelectGroup();
+
             loadGroups();
           } catch (err) {
             alert("通信エラーが発生しました");
@@ -1485,8 +1659,8 @@
             document.getElementById("welcomeMessage").textContent =
               `「${data.group_name}」グループでチャット中`;
             selectGroup(group_id, data.group_name);
-            //showChatUI();
-            //loadMessages(group_id);
+            showChatUI();
+            loadMessages(group_id);
           }
           //document.getElementById("welcomeMessage").textContent = `「${data.group_name}」グループでチャット中`;
           //showChatUI();
@@ -1581,6 +1755,7 @@
         const createGroupModal = document.getElementById("createGroupModal");
         createGroupModal.style.display = "none";
       }
+
 
       async function create_group() {
         //const groupName = prompt("新しいグループ名を入力してください:");
@@ -1909,6 +2084,16 @@
           }
         });
 
+        document.getElementById("searchInput").addEventListener("change", () => {
+          const query = document.getElementById("searchInput").value;
+          if (query) {
+            document.getElementById("searchBtn").disabled = false;
+            searchMessages();
+          } else {
+            document.getElementById("searchBtn").disabled = true;
+          }
+        });
+
         document.getElementById("sendBtn").addEventListener("change", () => {
           if (document.getElementById("text").value === "") {
             document.getElementById("sendBtn").disabled = true;
@@ -2095,6 +2280,22 @@
         document.getElementById("reply-preview").style.display = "none";
       }
 
+      function jumpToMessage(id) {
+        console.log(`jumpToMessage: ${id}`);
+        const messages = Array.from(document.querySelectorAll(".msg"));
+        const message = messages.find((m) => String(m.dataset.id) === String(id));
+        if (!message) return;
+    
+        console.log(`Found message:`, message);
+    
+        // 直接スクロールしてハイライト
+        message.scrollIntoView({ behavior: "smooth", block: "center" });
+        setTimeout(() => {
+            highlightElement(message);
+        }, 300);
+      }
+
+
       async function jumpToReplied(id) {
         //const repliedMessage = messages.find(m => m.id === replyingTo.id);
         const repliedMessage = messages.find((m) => m.id === id);
@@ -2265,7 +2466,7 @@
             const replied = messages.find((m) => m.id === msg.reply_to);
             if (replied) {
               repliedHTML = `
-                <div class="replied" onclick="jumpToReplied(${reply_to})" style="font-size: 12px; color: #555; padding: 4px 8px; border-left: 2px solid #4caf50; margin-bottom: 6px;">
+                <div class="replied" onclick="jumpToReplied(${reply_to})" style="font-size: 12px; color: #555; padding: 4px 8px; border-left: 2px solid #4caf50; margin-bottom: 6px; cursor: pointer;">
                   ↪︎ <strong>${replied.name}</strong>: ${replied.text.slice(0, 20)}...
                 </div>
               `;
@@ -2286,6 +2487,10 @@
           }
           bubble.className = `msg ${side}`;
           bubble.dataset.date = msg.date;
+          bubble.dataset.id = msg.id;
+          bubble.dataset.time = msg.time;
+          bubble.dataset.text = msg.text;
+          bubble.dataset.name = msg.name;
           const headerContent = isMine
             ? `
                 <strong>${msg.name}</strong>
@@ -2540,6 +2745,9 @@
           replyTo: replyingTo ? replyingTo.id : null,
         });
         document.getElementById("text").value = "";
+        if (replyingTo) {
+          cancelReply();
+        }
       }
       async function uploadFile() {
         if (isGroupSelected === false) {
@@ -2731,6 +2939,23 @@
         document.getElementById("settingsModal").style.display = "none";
       }
 
+      function unSelectGroup() {
+        if (isGroupSelected) {
+          isGroupSelected = false;
+          currentGroupId = null;
+          setWelcomeMessage();
+          document.getElementById("addOptionsBtn").innerHTML =
+            `追加　<i class="fa-solid fa-plus"></i>`;
+          document.getElementById("imageInput").value = "";
+          document.getElementById("fileInput").value = "";
+          document.getElementById("imageFileNameDisplay").style.display =
+            "none";
+          document.getElementById("imageFileNameDisplay").innerHTML = "";
+          document.getElementById("fileFileNameDisplay").style.display = "none";
+          document.getElementById("fileFileNameDisplay").innerHTML = "";
+        }
+      }
+
       async function setWelcomeMessage() {
         const res = await fetch("/api/user-info");
         if (!res.ok) {
@@ -2767,7 +2992,11 @@
         }
       }
 
-      
+      function showErrorModal(message) {
+        document.getElementById("errorModal").style.display = "flex";
+        document.getElementById("errorMessage").textContent = message;
+      }
+
       /*
       showEmptyState();
       loadGroups();
@@ -2814,9 +3043,11 @@
         if (data.group_id === currentGroupId) {
           loadMessages(currentGroupId);
         } else {
+          /*
           alert(
             "グループのプロフィールが更新されましたが、現在のグループではありません。",
           );
+          */
         }
       });
 
@@ -2853,9 +3084,7 @@
       });
 
       socket.on("error", (data) => {
-        //alert(data.msg);
-        document.getElementById("errorModal").style.display = "flex";
-        document.getElementById("errorMessage").textContent = data.msg;
+        showErrorModal(data.msg);
       });
 
       socket.on("disconnect", () => {

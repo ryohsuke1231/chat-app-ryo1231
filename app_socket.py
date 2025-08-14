@@ -434,59 +434,58 @@ def create_group():
 def join_group(data):
     if 'user' not in session:
         return "Unauthorized", 403
-    #data = request.get_json()
+
     group_id = data.get('group_id')
     user_id = session['uid']
 
     with sqlite3.connect("chat.db") as conn:
+        # 既に参加しているかチェック
         cur = conn.execute(
             "SELECT 1 FROM user_groups WHERE user_id = ? AND group_id = ? LIMIT 1",
             (user_id, group_id))
-        result = cur.fetchone()
-        if result:
-            #return jsonify({"status": "error", "message": "既に参加しています"}), 400
+        if cur.fetchone():
             emit('error', {'msg': 'すでに参加しています'})
             return
-        conn.execute(
-            "INSERT INTO user_groups (user_id, group_id) VALUES (?, ?)",
-            (user_id, group_id))
-        #参加するグループ名を取得
-        cur = conn.execute("SELECT name FROM groups WHERE id = ?",
-                           (group_id, ))
+
+        # グループ存在確認
+        cur = conn.execute("SELECT name FROM groups WHERE id = ?", (group_id,))
         row = cur.fetchone()
         if row is None:
-            #return jsonify({"status": "error", "message": "グループが存在しません"}), 400
             emit('error', {'msg': '当てはまるgroupがありません'})
             return
+        group_name = row[0]
 
-        # 例: 存在しなければINSERT、それ以外はUPDATE
-        join_date = datetime.now(JST).strftime('%Y/%m/%d')
-        cur = conn.execute("""
-            SELECT MAX(join_order) FROM user_groups WHERE group_id = ?
-        """, (group_id,))
+        # join_order の計算
+        cur = conn.execute(
+            "SELECT MAX(join_order) FROM user_groups WHERE group_id = ?",
+            (group_id,))
         max_order = cur.fetchone()[0] or 0
 
-        conn.execute("""
-            INSERT INTO read_status (group_id, user_id, join_date, join_order, last_read_message_id)
-            VALUES (?, ?, ?, ?, ?)
-            ON CONFLICT(group_id, user_id) DO UPDATE SET last_read_message_id = ?
-        """, (group_id, user_id, join_date, max_order, 0, 0))
+        join_date = datetime.now(JST).strftime('%Y/%m/%d')
 
-    group_name = row[0]
+        # read_status を先に登録（既存なら更新）
+        conn.execute("""
+            INSERT INTO read_status (group_id, user_id, last_read_message_id)
+            VALUES (?, ?, ?)
+            ON CONFLICT(group_id, user_id) DO UPDATE SET last_read_message_id = ?
+        """, (group_id, user_id, 0, 0))
+
+        # user_groups に登録（ここで初めてINSERT）
+        conn.execute("""
+            INSERT INTO user_groups (user_id, group_id, join_date, join_order)
+            VALUES (?, ?, ?, ?)
+        """, (user_id, group_id, join_date, max_order + 1))
+
+    # Socket.IOで部屋に参加
     join_room(group_id)
-    """
-    return jsonify({
-        "status": "ok",
-        "group_id": group_id,
-        "group_name": group_name,
-        "message": ""
-    })
-    """
+
+    # 参加完了を通知
     emit('joined', {
         'msg': f'{group_name}に参加しました',
         'group_id': group_id,
         'group_name': group_name
     }, to=group_id)
+
 
 @socketio.on('leave_group')
 def leave_group(data):
@@ -580,7 +579,7 @@ def update_group_profile():
         'new_name': new_group_name 
     }, to=group_id)
 
-    return {"status": "ok", "message": "Group profile updated"}
+    return jsonify({"status": "ok", "message": "Group profile updated"})
 
 
 @app.route('/chat/<group_id>')
