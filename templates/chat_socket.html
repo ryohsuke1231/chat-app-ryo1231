@@ -1008,6 +1008,14 @@
           <span class="label">ステータスメッセージ:</span>
           <span id="userStatusMessage" class="value"></span>
         </div>
+        <div class="user-info-item">
+          <span class="label">このグループに参加した日付:</span>
+          <span id="userJoinDate" class="value"></span>
+        </div>
+        <div class="user-info-item">
+          <span class="label">このグループに参加した順番:</span>
+          <span id="userJoinOrder" class="value"></span>
+        </div>
         <div class="modal-actions">
           <button id="closeUserInfoModal" type="button">閉じる</button>
         </div>
@@ -1774,7 +1782,7 @@
           const tr = document.createElement("tr");
 
           const idTd = document.createElement("td");
-          idTd.textContent = String(member.id);
+          idTd.textContent = String(member.join_order);
           tr.appendChild(idTd);
 
           const iconTd = document.createElement("td");
@@ -2144,7 +2152,7 @@
       }
 
       async function showUserInfo(user_id) {
-        const res = await fetch(`/users/${user_id}`);
+        const res = await fetch(`/users/${user_id}/${currentGroupId}`);
         const user = await res.json();
         const modal = document.getElementById("userInfoModal");
         modal.style.display = "flex";
@@ -2154,6 +2162,10 @@
           : `/icons/${user.icon_filename}`;
         document.getElementById("userStatusMessage").textContent =
           user.status_message;
+        document.getElementById("userJoinDate").textContent =
+          user.join_date;
+        document.getElementById("userJoinOrder").textContent =
+          user.join_order;
       }
 
       //let latestMessageId = -1;

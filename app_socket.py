@@ -112,6 +112,8 @@ def init_db():
             CREATE TABLE IF NOT EXISTS user_groups (
                 user_id INTEGER,
                 group_id TEXT,
+                join_date TEXT,
+                join_order INTEGER DEFAULT 0,
                 last_comment_time INTEGER DEFAULT -1,
                 PRIMARY KEY (user_id, group_id),
                 FOREIGN KEY (user_id) REFERENCES users(id),
@@ -458,11 +460,17 @@ def join_group(data):
             return
 
         # 例: 存在しなければINSERT、それ以外はUPDATE
+        join_date = datetime.now(JST).strftime('%Y/%m/%d')
+        cur = conn.execute("""
+            SELECT MAX(join_order) FROM user_groups WHERE group_id = ?
+        """, (group_id,))
+        max_order = cur.fetchone()[0] or 0
+
         conn.execute("""
-            INSERT INTO read_status (group_id, user_id, last_read_message_id)
-            VALUES (?, ?, 0)
-            ON CONFLICT(group_id, user_id) DO UPDATE SET last_read_message_id = 0
-        """, (group_id, user_id))
+            INSERT INTO read_status (group_id, user_id, join_date, join_order, last_read_message_id)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(group_id, user_id) DO UPDATE SET last_read_message_id = ?
+        """, (group_id, user_id, join_date, max_order, 0, 0))
 
     group_name = row[0]
     join_room(group_id)
@@ -1038,18 +1046,21 @@ def get_members(group_id):
         #members = [{"id": r[0], "name": r[1], "icon": r[2], "icon_is_default": r[3], "last_comment_time": r[4]} for r in cur.fetchall()]
         cur = conn.execute(
             """
-            SELECT u.id, u.display_name, u.icon_filename, u.icon_is_default, ug.last_comment_time
+            SELECT u.id, u.display_name, u.icon_filename, u.icon_is_default, ug.last_comment_time, ug.join_date, ug.join_order
             FROM users u
             JOIN user_groups ug ON u.id = ug.user_id
             WHERE ug.group_id = ?
         """, (group_id, ))
+
 
         members = [{
             "id": r[0],
             "name": r[1],
             "icon": r[2],
             "icon_is_default": r[3],
-            "last_comment_time": r[4]
+            "last_comment_time": r[4],
+            "join_date": r[5],
+            "join_order": r[6]
         } for r in cur.fetchall()]
         for member in members:
             member["last_comment_time_readable"] = human_readable_time(
@@ -1058,25 +1069,33 @@ def get_members(group_id):
         return jsonify(members)
 
 
-@app.route('/users/<user_id>')
-def get_user_info(user_id):
+@app.route('/users/<user_id>/<group_id>')
+def get_user_info(user_id, group_id):
     with sqlite3.connect("chat.db") as conn:
         cur = conn.execute(
             "SELECT display_name, icon_filename, icon_is_default, status_message FROM users WHERE id = ?",
             (user_id, ))
+        cur_new = conn.execute(
+            "SELECT join_date, join_order FROM user_groups WHERE user_id = ? AND group_id = ?",
+            (user_id, group_id))
         row = cur.fetchone()
+        row_new = cur_new.fetchone()
         if row is None:
             return jsonify({"status": "error", "message": "ユーザーが存在しません"}), 400
         display_name = row[0]
         icon_filename = row[1]
         icon_is_default = row[2]
         status_message = row[3]
+        join_date = row_new[0] if row_new else "-"
+        join_order = row_new[1] if row_new else "-"
         return jsonify({
             "status": "ok",
             "display_name": display_name,
             "icon_filename": icon_filename,
             "icon_is_default": icon_is_default,
-            "status_message": status_message
+            "status_message": status_message,
+            "join_date": join_date,
+            "join_order": join_order
         })
 
 
