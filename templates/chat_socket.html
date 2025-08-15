@@ -2084,7 +2084,7 @@
           }
         });
 
-        document.getElementById("searchInput").addEventListener("change", () => {
+        document.getElementById("searchInput").addEventListener("input", () => {
           const query = document.getElementById("searchInput").value;
           if (query) {
             document.getElementById("searchBtn").disabled = false;

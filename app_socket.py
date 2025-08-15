@@ -5,6 +5,7 @@ from werkzeug.utils import secure_filename
 import sqlite3
 import uuid
 from datetime import datetime, timezone, timedelta
+from apscheduler.schedulers.background import BackgroundScheduler
 import os
 import shutil
 from flask_socketio import SocketIO, emit, join_room, leave_room
@@ -95,13 +96,15 @@ def init_db():
                 icon_is_default INTEGER DEFAULT 1,
                 icon_filename TEXT DEFAULT NULL,
                 last_comment_time INTEGER DEFAULT -1,
-                status_message TEXT DEFAULT NULL
+                status_message TEXT DEFAULT NULL,
+                friend_password TEXT DEFAULT NULL
             )
         ''')
         conn.execute('''
             CREATE TABLE IF NOT EXISTS groups (
                 id TEXT PRIMARY KEY,
                 name TEXT,
+                type TEXT,
                 icon_url TEXT,
                 creator_id INTEGER,
                 created_at TEXT,
@@ -257,6 +260,10 @@ def login():
         device_type = get_device_type()
         session['device_type'] = device_type
         return render_template('login.html', device_type=device_type)
+    
+@app.route('/bot')
+def bot():
+    return render_template("bot.html")
 
 @app.route('/go_chat')
 def go_chat():
@@ -409,8 +416,8 @@ def create_group():
 
     with sqlite3.connect("chat.db") as conn:
         conn.execute(
-            "INSERT INTO groups (id, name, icon_url, creator_id, created_at, messages_table) VALUES (?, ?, ?, ?, ?, ?)",
-            (group_id, group_name, group_icon_url, creater_id, created_at,
+            "INSERT INTO groups (id, name, type, icon_url, creator_id, created_at, messages_table) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (group_id, group_name, "group", group_icon_url, creater_id, created_at,
              messages_table))
         conn.execute(f"""
             CREATE TABLE IF NOT EXISTS {messages_table} (
@@ -1190,7 +1197,101 @@ def onClose():
     #resp.set_cookie("session", "", expires=0)  # 👈 Cookieを強制削除
     return resp
 
+def update_():
+    with sqlite3.connect("chat.db") as conn:
+        cur = conn.execute("""
+            SELECT id FROM users
+        """)
+        user_ids = [row[0] for row in cur.fetchall()]
+        print(f"User IDs: {user_ids}")
+        
+        for user_id in user_ids:
+            new_password = ""
+            while True:
+                new_password = random_id(8)
+                cur = conn.execute("SELECT 1 FROM users WHERE friend_password = ?",
+                    (new_password,))
+                if not cur.fetchone():
+                    break  # 衝突なし
+            conn.execute("""
+                UPDATE users SET friend_password = ? WHERE id = ?
+            """, (new_password, user_id))
+
+@socketio.on('add_friend')
+def add_friend(data):
+    friend_id = data.get('friend_id')
+    friend_password = data.get('friend_password')
+    my_id = session.get('uid')  # セッションから自分のIDを取得（POSTならrequest.formやJSONから）
+
+    if not my_id:
+        emit('add_friend_response', {'status': 'error', 'message': 'ログインが必要です'})
+        return
+
+    with sqlite3.connect("chat.db") as conn:
+        # 1. 相手ユーザーの存在確認 & パスワード一致
+        cur = conn.execute("""
+            SELECT id, display_name, icon_filename, icon_is_default
+            FROM users
+            WHERE id = ? AND friend_password = ?
+        """, (friend_id, friend_password))
+        friend = cur.fetchone()
+        if not friend:
+            emit('add_friend_response', {'status': 'error', 'message': 'IDまたはパスワードが間違っています'})
+            return
+
+        # 2. 既にDMグループがあるか確認（ID順で固定）
+        group_id = f"dm_{min(my_id, friend_id)}_{max(my_id, friend_id)}"
+        cur = conn.execute("SELECT 1 FROM groups WHERE id = ?", (group_id,))
+        if not cur.fetchone():
+            # 3. グループ作成（アイコンは固定、名前は相手の名前）
+            group_name = f"{friend[1]}"
+            group_icon_url = f"/icons/{friend[2]}" if friend[3] else "/static/chat_default.png"
+            created_at = datetime.now(JST).strftime('%Y-%m-%d %H:%M:%S')
+            messages_table = f"messages_{group_id}"
+
+            conn.execute("""
+                INSERT INTO groups (id, name, type, icon_url, creator_id, created_at, messages_table)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (group_id, group_name, "dm", group_icon_url, my_id, created_at, messages_table))
+
+            conn.execute(f"""
+                CREATE TABLE IF NOT EXISTS {messages_table} (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT,
+                    type TEXT,
+                    text TEXT,
+                    time TEXT,
+                    read INTEGER DEFAULT 0,
+                    email TEXT,
+                    user_id INTEGER,
+                    reply_to INTEGER DEFAULT -1
+                )
+            """)
+
+            # 両者を user_groups に登録
+            for uid in (my_id, friend_id):
+                conn.execute("""
+                    INSERT OR IGNORE INTO user_groups (user_id, group_id, join_date)
+                    VALUES (?, ?, datetime('now'))
+                """, (uid, group_id))
+
+        conn.commit()
+
+    # 4. 成功レスポンス
+    emit('add_friend_response', {
+        'status': 'ok',
+        'friend': {
+            'id': friend[0],
+            'display_name': friend[1],
+            'icon_filename': friend[2],
+            'icon_is_default': friend[3]
+        },
+        'group_id': group_id
+    })
+
 
 if __name__ == "__main__":
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(update_, 'cron', hour=0, minute=0)
+    scheduler.start()
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), use_reloader=False, log_output=True)
-
